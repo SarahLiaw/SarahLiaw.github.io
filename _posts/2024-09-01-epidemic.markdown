@@ -2,7 +2,7 @@
 layout: post
 title:  "Analyzing and Controlling Open SIS Epidemics in Dynamic Population Networks"
 date:   2024-09-01 22:21:59 +00:00
-image: /images/3dgaussian.jpg
+# image: /images/3dgaussian.jpg
 categories: research
 author: "Sarah Liaw"
 authors: "<strong>Sarah Liaw</strong>"
