@@ -1,12 +1,12 @@
 ---
 layout: post
-title:  "Scalable Learning of Non-Gaussian Graphical Models"
+title:  "Learning local neighborhoods of non-Gaussian graphical models"
 date:   2024-08-15 22:21:59 +00:00
 # image: /images/3dgaussian.jpg TODO Change!
 categories: research
 # author: "Sarah Liaw"
 # authors: "<strong>Sarah Liaw</strong>"
-venue: "Under Review"
+venue: "Accepted at AAAI'25 (Main technical track)"
 # arxiv: https://arxiv.org/abs/2308.14737
 # code: https://github.com/leonidk/fmb-plus
 # website: https://leonidk.github.io/fmb-plus
