@@ -5,9 +5,9 @@ date:   2024-12-09 22:21:59 +00:00
 image: /images/NG_graphical_model10.png #TODO Change!
 categories: research
 # author: "Sarah Liaw"
-# authors: "<strong>Sarah Liaw</strong>"
-venue: "Accepted at AAAI'25 (Main technical track)"
+authors: "<strong>Sarah Liaw</strong>, Rebecca Morrison, Youssef Marzouk, Ricardo Baptista"
+venue: "Accepted at AAAI'25 (main technical track)"
 # arxiv: https://arxiv.org/abs/2308.14737
-# code: https://github.com/leonidk/fmb-plus
+code: https://github.com/sarahliaw/lsing_sw
 # website: https://leonidk.github.io/fmb-plus
 ---
