@@ -2,7 +2,7 @@
 layout: post
 title:  "Learning local neighborhoods of non-Gaussian graphical models"
 date:   2024-12-09 22:21:59 +00:00
-image: images/NG_graphical_model10.png #TODO Change!
+image: /images/NG_graphical_model10.png #TODO Change!
 categories: research
 # author: "Sarah Liaw"
 # authors: "<strong>Sarah Liaw</strong>"
