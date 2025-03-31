@@ -6,8 +6,8 @@ image: images/NG_graphical_model10.png #TODO Change!
 categories: research
 # author: "Sarah Liaw"
 authors: "<strong>Sarah Liaw</strong>, Rebecca Morrison, Youssef Marzouk, Ricardo Baptista"
-venue: "Accepted at AAAI'25 (main technical track)"
-# arxiv: https://arxiv.org/abs/2308.14737
+venue: "AAAI'25"
+arxiv: https://arxiv.org/abs/2503.13899
 code: https://github.com/sarahliaw/lsing_sw
 # website: https://leonidk.github.io/fmb-plus
 ---
