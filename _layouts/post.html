@@ -1,0 +1,116 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+    <title>{{ page.title }} — {{ site.name }}</title>
+
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <meta name="author" content="{{ site.name }}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="{{ page.title }}">
+
+    <link rel="stylesheet" type="text/css" href="{{ site.baseurl }}/assets/css/style.css" />
+    <link rel="icon" type="image/svg+xml" href="{{ site.baseurl }}/images/favicon.svg?v=3" sizes="any">
+    <link rel="shortcut icon" href="{{ site.baseurl }}/images/favicon.svg?v=3">
+    <link href="https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic" rel="stylesheet"
+        type="text/css">
+
+</head>
+
+<body>
+    <table
+        style="width:100%;max-width:800px;border:0px;border-spacing:0px;border-collapse:separate;margin-right:auto;margin-left:auto;">
+        <tr style="padding:0px">
+            <td style="padding:20px">
+
+                <a href="{{ site.baseurl }}/" class="detail-back">&larr; Back to homepage</a>
+
+                <div class="post-header">
+                    <h1 class="post-title">{{ page.title }}</h1>
+
+                    {% if page.authors %}
+                    <div class="post-authors">
+                        {{ page.authors }}
+                    </div>
+                    {% endif %}
+
+
+
+                    <div class="post-buttons">
+                        {% if page.paper %}
+                        <a href="{{ page.paper }}" class="btn">Paper</a>
+                        {% endif %}
+                        {% if page.arxiv %}
+                        <a href="{{ page.arxiv }}" class="btn">Paper (arXiv)</a>
+                        {% endif %}
+                        {% if page.code %}
+                        <a href="{{ page.code }}" class="btn">Code</a>
+                        {% endif %}
+                        {% if page.pypi %}
+                        <a href="{{ page.pypi }}" class="btn">PyPI</a>
+                        {% endif %}
+                        {% if page.website %}
+                        <a href="{{ page.website }}" class="btn">Website</a>
+                        {% endif %}
+                        {% if page.huggingface %}
+                        <a href="{{ page.huggingface }}" class="btn">Hugging Face</a>
+                        {% endif %}
+                        {% if page.video %}
+                        <a href="{{ page.video }}" class="btn">Video</a>
+                        {% endif %}
+                        {% if page.dataset %}
+                        <a href="{{ page.dataset }}" class="btn">Dataset</a>
+                        {% endif %}
+                        {% if page.poster %}
+                        <a href="{{ page.poster }}" class="btn">Poster</a>
+                        {% endif %}
+                        {% if page.slides %}
+                        <a href="{{ page.slides }}" class="btn">Slides</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if page.image %}
+                <div class="detail-image" style="text-align: center;">
+                    <img src="{{ site.baseurl }}/{{ page.image }}" alt="{{ page.title }}">
+                </div>
+                {% endif %}
+
+                <div class="post-content">
+                    {{ content }}
+                </div>
+
+                {% if page.bibtex %}
+                <div class="citation-section">
+                    <div class="citation-header">
+                        <div class="citation-title">Citation</div>
+                        <button class="copy-btn" onclick="copyBibtex()">Copy</button>
+                    </div>
+                    <div class="citation-block" id="bibtex-content">{{ page.bibtex }}</div>
+                </div>
+                <script>
+                    function copyBibtex() {
+                        var bibtex = document.getElementById("bibtex-content").innerText;
+                        navigator.clipboard.writeText(bibtex).then(function () {
+                            var btn = document.querySelector(".copy-btn");
+                            var originalText = btn.innerText;
+                            btn.innerText = "Copied!";
+                            setTimeout(function () {
+                                btn.innerText = originalText;
+                            }, 2000);
+                        }, function (err) {
+                            console.error('Async: Could not copy text: ', err);
+                        });
+                    }
+                </script>
+                {% endif %}
+
+                <br>
+                <a href="{{ site.baseurl }}/" class="detail-back">&larr; Back to homepage</a>
+
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>

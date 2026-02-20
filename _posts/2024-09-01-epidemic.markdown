@@ -1,0 +1,11 @@
+---
+layout: post
+title:  "Analyzing and Controlling Open SIS Epidemics in Dynamic Population Networks"
+date:   2024-09-01 22:21:59 +00:00
+categories: hidden
+authors: "<strong>Sarah Liaw</strong>"
+venue: "IEEE MIT Undergraduate Research Technology Conference"
+tldr: "Analyzes continuous-time SIS epidemics in dynamic populations and proposes control methods for non-strategic and strategic agents."
+---
+
+Studying epidemic models is crucial for understanding and mitigating the spread of infectious diseases, especially in public health. In this work, we analyze continuous-time SIS epidemics with dynamic populations, where agents frequently arrive and depart, reflecting real-world scenarios more accurately. Our model generalizes to any time-varying network with these population changes, incorporating stochastic elements where arrivals and departures follow Poisson processes with varying rates. This approach better captures the nature of arrivals and departures in societies due to transportation networks. We investigate the evolution of an aggregate measure of infection levels and propose control methods for both non-strategic and strategic agents. For non-strategic agents, we derive the expectation of the aggregate infection measure. For strategic agents, we extend an online control algorithm to address open SIS epidemics in adversarial settings with real-world population fluctuations.

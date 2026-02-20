@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <!-- Background -->
+  <rect width="256" height="256" rx="64" fill="#ffffff" />
+  
+  <!-- Trails -->
+  <path d="M70 140 C115 140, 130 128, 165 110" stroke="#000000" stroke-width="16" stroke-linecap="round"/>
+  <path d="M62 168 C112 168, 132 152, 170 132" stroke="#000000" stroke-width="14" stroke-linecap="round" opacity="0.75"/>
+  <path d="M58 196 C110 196, 135 178, 176 156" stroke="#000000" stroke-width="12" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- Head -->
+  <circle cx="190" cy="96" r="26" fill="#000000"/>
+</svg>

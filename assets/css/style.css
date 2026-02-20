@@ -1,0 +1,486 @@
+/* IMPORTS */
+/* @import "reset"; */
+/* @import "variables"; */
+/* Syntax highlighting @import is at the bottom of this file */
+
+/**************/
+/* BASE RULES */
+/**************/
+a {
+    color: #1772d0;
+    text-decoration: none;
+}
+
+a:focus,
+a:hover {
+    color: #f09228;
+    text-decoration: none;
+}
+
+body,
+td,
+th,
+tr,
+p,
+a {
+    font-family: 'Lato', Verdana, Helvetica, sans-serif;
+    font-size: 14px;
+    font-display: auto;
+}
+
+strong {
+    font-family: 'Lato', Verdana, Helvetica, sans-serif;
+    font-size: 14px;
+    font-display: auto;
+}
+
+h2 {
+    font-family: 'Lato', Verdana, Helvetica, sans-serif;
+    font-size: 22px;
+    font-display: auto;
+    font-weight: normal;
+    padding: 0px;
+    margin: 0px;
+    display: inline;
+}
+
+h3 {
+    font-family: 'Lato', Verdana, Helvetica, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    font-display: auto;
+    padding: 0px;
+    margin: 0px;
+    display: inline;
+}
+
+h1 {
+    font-family: 'Lato', Verdana, Helvetica, sans-serif;
+    font-size: 32px;
+    font-weight: normal;
+    font-display: auto;
+    text-align: center;
+    padding: 0px;
+    margin-block-start: 14px;
+    margin-block-end: 14px;
+    margin-left: 0px;
+    margin-right: 0px;
+}
+
+.one {
+    width: 160px;
+    height: 160px;
+    position: relative;
+}
+
+.two {
+    width: 160px;
+    height: 160px;
+    position: absolute;
+    transition: opacity .2s ease-in-out;
+    -moz-transition: opacity .2s ease-in-out;
+    -webkit-transition: opacity .2s ease-in-out;
+}
+
+.fade {
+    transition: opacity .2s ease-in-out;
+    -moz-transition: opacity .2s ease-in-out;
+    -webkit-transition: opacity .2s ease-in-out;
+}
+
+span.highlight {
+    background-color: #ffffd0;
+}
+
+/* ---- Social Icons Row ---- */
+.social-icons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.social-icons a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 0;
+    color: #1772d0;
+    font-size: 14px;
+    transition: color 0.15s ease;
+}
+
+.social-icons a:hover {
+    color: #f09228;
+}
+
+.social-icons a svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+
+.social-sep {
+    color: #999;
+    margin: 0 2px;
+    user-select: none;
+}
+
+/* ---- News Section (scrollable) ---- */
+.news-scroll {
+    margin-top: 10px;
+    max-height: 260px;
+    overflow-y: auto;
+    border-left: 3px solid #2e8b57;
+    padding-left: 16px;
+}
+
+.news-scroll::-webkit-scrollbar {
+    width: 4px;
+}
+
+.news-scroll::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+.news-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.news-item {
+    display: flex;
+    gap: 12px;
+    padding: 6px 0;
+    align-items: baseline;
+}
+
+.news-item+.news-item {
+    border-top: 1px solid #f0f0f0;
+}
+
+.news-date {
+    font-weight: 700;
+    color: #1a6b1a;
+    white-space: nowrap;
+    font-size: 13px;
+    min-width: 72px;
+    flex-shrink: 0;
+}
+
+.news-text {
+    font-size: 13px;
+    /* Slightly smaller as requested */
+    color: #333;
+    line-height: 1.5;
+}
+
+/* ---- Detail Page ---- */
+.detail-back {
+    display: inline-block;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: #1772d0;
+}
+
+.detail-back:hover {
+    color: #f09228;
+}
+
+.detail-title {
+    font-family: 'Lato', Verdana, Helvetica, sans-serif;
+    font-size: 24px;
+    font-weight: normal;
+    margin-bottom: 8px;
+}
+
+.detail-meta {
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.detail-venue {
+    font-size: 14px;
+    font-style: italic;
+    color: #666;
+    margin-bottom: 16px;
+}
+
+.detail-links {
+    margin-bottom: 20px;
+}
+
+.detail-links a {
+    margin-right: 8px;
+}
+
+.detail-content {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #333;
+}
+
+.detail-content p {
+    margin-bottom: 12px;
+}
+
+.detail-image {
+    margin: 16px 0;
+    max-width: 100%;
+}
+
+.detail-image img {
+    max-width: 100%;
+    border: 1px solid #ddd;
+    /* User requested smaller image */
+    max-height: 400px;
+    width: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+/* ---- New Post Layout Styles ---- */
+
+.post-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.post-title {
+    font-family: 'Lato', Verdana, Helvetica, sans-serif;
+    font-size: 36px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 15px;
+    line-height: 1.2;
+}
+
+.post-authors {
+    font-size: 18px;
+    color: #333;
+    margin-bottom: 15px;
+    font-weight: normal;
+    /* Ensure consistent weight */
+}
+
+.post-affiliations {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.author-block {
+    display: inline-block;
+    margin: 0 10px;
+}
+
+.affiliation-mark {
+    vertical-align: super;
+    font-size: 10px;
+    color: #666;
+}
+
+.post-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-block;
+    background-color: #3b5aef;
+    /* Match the reference slightly lighter blue or similar */
+    color: #fff !important;
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-size: 16px;
+    font-weight: 600;
+    transition: background-color 0.2s;
+    text-decoration: none;
+}
+
+.btn:hover {
+    background-color: #2a42b0;
+    color: #fff !important;
+}
+
+.citation-section {
+    margin-top: 50px;
+    border-top: 1px solid #eaeaea;
+    padding-top: 30px;
+}
+
+.citation-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    color: #333;
+    /* margin-bottom: 15px; */
+    text-align: center;
+}
+
+.citation-block {
+    background-color: #1e2129;
+    /* Dark background like reference */
+    color: #dcdcdc;
+    padding: 20px;
+    border-radius: 8px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre-wrap;
+}
+
+.citation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.citation-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    /* margin-bottom: 15px; removed as it's handled by header */
+}
+
+.copy-btn {
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #333;
+    transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+    background-color: #e0e0e0;
+    border-color: #ccc;
+}
+
+.abstract-box {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-in-out, opacity 0.4s ease-in-out, margin 0.4s ease-in-out, padding 0.4s ease-in-out;
+    margin-top: 0;
+    padding: 0;
+    background: #fdfdfd;
+    border-left: 3px solid forestgreen;
+    font-size: 13px;
+    line-height: 1.6;
+    border-radius: 0 4px 4px 0;
+}
+
+.abstract-box.open {
+    max-height: 1500px;
+    opacity: 1;
+    margin-top: 15px;
+    /* Removed padding here, applying it to inner content for better background separation */
+}
+
+.abstract-content {
+    padding: 15px;
+}
+
+.abstract-tldr {
+    background: #f0f7f0;
+    /* Very light green tint */
+    border-bottom: 1px solid #e0ede0;
+    padding: 12px 15px;
+    margin: 0;
+    color: #2c5e2c;
+    /* Deeper green text for emphasis */
+}
+
+/* ---- Scholar CTA ---- */
+.scholar-cta {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 14px;
+    color: #1772d0;
+}
+
+.scholar-cta:hover {
+    color: #f09228;
+}
+
+/* Post Content (Abstract & Body) */
+.post-content {
+    font-size: 16px;
+    line-height: 1.8;
+    color: #333;
+}
+
+.post-content p {
+    margin-bottom: 24px;
+}
+
+/* ---- Mobile Layout Fixers ---- */
+@media screen and (max-width: 768px) {
+    .profile-row {
+        display: flex;
+        flex-direction: column-reverse;
+    }
+
+    .pub-row {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .profile-row>td,
+    .pub-row>td {
+        display: block;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 15px 0 !important;
+        box-sizing: border-box;
+        min-width: unset !important;
+    }
+
+    .profile-row>td:last-child {
+        text-align: center;
+    }
+
+    .profile-row>td:last-child img {
+        max-width: 200px !important;
+        width: 100% !important;
+        height: auto;
+        margin: 0 auto;
+    }
+
+    .pub-row>td:first-child {
+        text-align: center;
+        padding-bottom: 5px !important;
+    }
+
+    .pub-row>td:first-child img {
+        max-width: 100% !important;
+        height: auto;
+        margin: 0 auto;
+        display: block;
+    }
+}
+
+/* Fix for bold author name looking small */
+.post-authors strong {
+    font-size: 1.05em;
+}
+
+/* Settled on moving the import of syntax highlighting to the bottom of the CSS */
+/* ... Otherwise it really bloats up the top of the CSS file and makes it difficult to find the start */
+/* @import "highlights"; */
+/* @import "svg-icons"; */
