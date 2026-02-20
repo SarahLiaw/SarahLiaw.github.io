@@ -446,7 +446,7 @@ span.highlight {
         display: block;
         width: 100% !important;
         max-width: 100% !important;
-        padding: 15px 0 !important;
+        padding: 15px 2.5% !important;
         box-sizing: border-box;
         min-width: unset !important;
     }
@@ -456,7 +456,8 @@ span.highlight {
     }
 
     .profile-row>td:last-child img {
-        max-width: 200px !important;
+        max-width: 150px !important;
+        /* Reduced from 200px */
         width: 100% !important;
         height: auto;
         margin: 0 auto;
@@ -468,7 +469,8 @@ span.highlight {
     }
 
     .pub-row>td:first-child img {
-        max-width: 100% !important;
+        max-width: 60% !important;
+        /* Reduced size of project images */
         height: auto;
         margin: 0 auto;
         display: block;
