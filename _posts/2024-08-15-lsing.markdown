@@ -18,7 +18,7 @@ bibtex: |
    author={Liaw, Sarah and Morrison, Rebecca and Marzouk, Youssef and Baptista, Ricardo},
    year={2025},
    month=apr, pages={18711–18718} }
-venue: "AAAI'25"
+venue: "AAAI"
 tldr: "Scalable algorithm to infer conditional independence in high-dimensional non-Gaussian graphical models."
 arxiv: https://arxiv.org/abs/2503.13899
 code: https://github.com/sarahliaw/lsing_sw
