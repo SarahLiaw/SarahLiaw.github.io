@@ -16,7 +16,7 @@ bibtex: |
     year={2025},
     url={https://doi.org/10.1609/aaai.v39i28.35269}
   }
-venue: "AAAI'25 (Student Abstract)"
+venue: "AAAI"
 tldr: "Renormalization group theory to analyze and optimize scale-invariant feature learning in NNs."
 paper: https://ojs.aaai.org/index.php/AAAI/article/view/35269
 ---
