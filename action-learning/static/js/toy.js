@@ -1,7 +1,7 @@
 /* Toy landscape of Figs. 2-3: overdamped Langevin dynamics in a channel just above the drawn curve.
    State x = (u, h) in units of the image width. V = c G(u) + k(s) s^2 with s = h - G(u) - d.
    Path quantities are exact for the Euler-Maruyama chain on this grid (Eqs. 8-9, A.10).
-   The reference is a Brownian bridge with diffusion Dref, conditioned to stay above the curve. */
+   With opts.field, the potential LEAP learned (build/toy_leap.py) replaces V, so S, G, MH and descent use the learned action. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.LEAPToy = factory();
@@ -29,6 +29,38 @@
       return r * Math.cos(2 * Math.PI * v);
     };
     return { uni, normal };
+  }
+
+  // Potential U on a uniform cubic B-spline grid (build/toy_leap.py); drift -grad U, Jacobian -Hess U (Eq. 13, b_ref = 0).
+  function bsplineField(f) {
+    const { u0, h0, du, dh, nu, nh } = f, C = Float64Array.from(f.coef);      // C[i * nh + j], i along u
+    const wu = new Float64Array(12), wh = new Float64Array(12);
+    function basis(x, x0, dx, n, w) {        // w = [values, first, second derivatives] of the 4 active splines
+      let t = (x - x0) / dx;
+      if (t < 0) t = 0;
+      if (t > n - 3 - 1e-9) t = n - 3 - 1e-9;
+      const i = Math.floor(t), q = t - i, r = 1 - q;
+      w[0] = r * r * r / 6; w[1] = (3 * q * q * q - 6 * q * q + 4) / 6; w[2] = (-3 * q * q * q + 3 * q * q + 3 * q + 1) / 6; w[3] = q * q * q / 6;
+      w[4] = -r * r / 2 / dx; w[5] = (3 * q * q - 4 * q) / 2 / dx; w[6] = (-3 * q * q + 2 * q + 1) / 2 / dx; w[7] = q * q / 2 / dx;
+      w[8] = r / (dx * dx); w[9] = (3 * q - 2) / (dx * dx); w[10] = (1 - 3 * q) / (dx * dx); w[11] = q / (dx * dx);
+      return i;
+    }
+    // derivatives of U: [Uu, Uh, Uuu, Uuh, Uhh]
+    const g = new Float64Array(5);
+    function grad2(u, h) {
+      const i = basis(u, u0, du, nu, wu), j = basis(h, h0, dh, nh, wh);
+      g.fill(0);
+      for (let a = 0; a < 4; a++) for (let b = 0; b < 4; b++) {
+        const c = C[(i + a) * nh + j + b];
+        g[0] += wu[4 + a] * wh[b] * c; g[1] += wu[a] * wh[4 + b] * c;
+        g[2] += wu[8 + a] * wh[b] * c; g[3] += wu[4 + a] * wh[4 + b] * c; g[4] += wu[a] * wh[8 + b] * c;
+      }
+      return g;
+    }
+    return {
+      drift(u, h, out) { grad2(u, h); out[0] = -g[0]; out[1] = -g[1]; },
+      jac(u, h, out) { grad2(u, h); out[0] = -g[2]; out[1] = -g[3]; out[2] = -g[3]; out[3] = -g[4]; },
+    };
   }
 
   function make(ground, opts) {
@@ -63,14 +95,14 @@
     const ground_h = (u) => spline(u)[0];
 
     // drift b = -grad V into out[0..1]
-    function drift(u, h, out) {
+    function exactDrift(u, h, out) {
       spline(u);
       const s = h - sp[0] - d, k = s >= 0 ? kUp : kDn;
       out[0] = sp[1] * (2 * k * s - c);
       out[1] = -2 * k * s;
     }
     // Jacobian of b: [buu, buh, bhu, bhh]
-    function jac(u, h, out) {
+    function exactJac(u, h, out) {
       spline(u);
       const g1 = sp[1], g2 = sp[2], s = h - sp[0] - d, k = s >= 0 ? kUp : kDn;
       out[0] = g2 * (2 * k * s - c) - 2 * k * g1 * g1;
@@ -78,6 +110,9 @@
       out[2] = 2 * k * g1;
       out[3] = -2 * k;
     }
+    // With p.field (a learned potential), every path quantity below uses the learned drift instead of the exact one.
+    const learned = p.field ? bsplineField(p.field) : null;
+    const drift = learned ? learned.drift : exactDrift, jac = learned ? learned.jac : exactJac;
     function V(u, h) {
       spline(u);
       const s = h - sp[0] - d, k = s >= 0 ? kUp : kDn;
@@ -266,7 +301,7 @@
     const toPx = (u, h) => [u * L, ground.y_ref - h * L];
 
     return {
-      params: p, ground_h, drift, jac, V, gTerm, Gpath, S, Sref, logRatio, F, Mval, Cval, gradF,
+      params: p, ground_h, drift, jac, exactDrift, V, gTerm, Gpath, S, Sref, logRatio, F, Mval, Cval, gradF,
       aboveGround, bridge, bridgeFill, refBridge, mh, descend, ends, toPx,
     };
   }

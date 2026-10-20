@@ -93,8 +93,8 @@
     view = key; t = 0;
     {
       kept = 0; simulated = 0; shown.length = 0;
-      setRich(cap1, 'Trajectories start at \\i{x}_{0} = −1 and are kept when \\i{x}_{\\i{T}} ∈ [0.9, 1.1] at \\i{T} = 3.');
-      setRich(cap2, 'Observed paths linger in the wells and the Brownian reference does not. LEAP learns the drift from this difference.');
+      setRich(cap1, 'We keep trajectories from \\i{x}_{0} = −1 that reach \\i{x}_{\\i{T}} ∈ [0.9, 1.1] at \\i{T} = 3.');
+      setRich(cap2, 'LEAP compares these paths, which linger in the wells, with the matched Brownian reference and recovers the drift.');
     }
     draw();
   }

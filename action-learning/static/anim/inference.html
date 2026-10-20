@@ -14,6 +14,7 @@
 <script src="../js/fig.js"></script>
 <script src="../js/toy.js"></script>
 <script src="../data/toy.js"></script>
+<script src="../data/toy_leap.js"></script>
 <script src="../data/landscape.js"></script>
 <script src="../js/landscape.js"></script>
 <script>
@@ -21,10 +22,11 @@
   'use strict';
   const { P, el, rich, setRich, stage, polyline, dot, loop, playButton, smooth } = Fig;
   const W = 1000, H = 545;
-  const st = stage(document.getElementById('fig'), W, H, () => draw());
+  const host = document.getElementById('fig');
+  const st = stage(host, W, H, () => draw());
   const svg = st.svg;
   const ground = window.LEAP_TOY_GROUND;
-  const T = LEAPToy.make(ground);
+  const T = LEAPToy.make(ground, { field: window.LEAP_TOY_FIELD });   // the action LEAP learned (build/toy_leap.py)
   const [A, B] = T.ends();
   const N = T.params.N, d = T.params.d;
   const ub = ground.bump_px / ground.L, gb = T.ground_h(ub);
@@ -113,11 +115,14 @@
     // tilting: the weight grows with a warm start, and the route switches past a threshold
     S.tilt.t += dt;
     if (S.tilt.t > 9) { S.tilt.t = 0; S.tilt.path = Float64Array.from(base); S.tilt.opt = { M, lM: 0 }; }
-    S.tilt.opt.lM = 300 * smooth(Math.min(S.tilt.t, 6.5) / 6.5);
+    S.tilt.opt.lM = 500 * smooth(Math.min(S.tilt.t, 6.5) / 6.5);
     T.descend(S.tilt.path, 30, S.tilt.opt);
     S.con.t += dt;
-    if (S.con.t > 6) { S.con.t = 0; S.con.path = arc(); S.con.opt = { C, lC: 900 }; }
-    if (S.con.t > 0.6) T.descend(S.con.path, Math.round(2 + 20 * smooth((S.con.t - 0.6) / 2)), S.con.opt);
+    if (S.con.moved) replan(40);
+    else {
+      if (S.con.t > 6) { S.con.t = 0; S.con.path = arc(); S.con.opt = { C, lC: 900 }; }
+      if (S.con.t > 0.6) T.descend(S.con.path, Math.round(2 + 20 * smooth((S.con.t - 0.6) / 2)), S.con.opt);
+    }
     // sampling: Metropolis-Hastings with reference-bridge proposals
     const m = S.mh;
     T.mh(m.path, R, 2500, { window: 10 });
@@ -126,12 +131,47 @@
     if (m.t > 9) { m.t = 0; m.samples = []; }
   }
 
+  // drag (or tap) in the constraint panel to move the disc; the same action re-plans the path, nothing is retrained
+  const hint = rich(svg, panel(2).x0 + PW - 18, panel(2).y0 + 250,
+    window.matchMedia('(pointer: coarse)').matches ? 'tap to move the disc' : 'drag the disc', { class: 'tick', 'text-anchor': 'end' });
+  const toLogical = (e) => { const r = host.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H]; };
+  const inCon = ([x, y]) => x < PW && y > PH + 50 && y < H - 8;
+  // after a move, descend from the current path and from a fresh start, and show whichever has the lower action
+  function replan(n) {
+    const c = S.con;
+    T.descend(c.path, n, c.opt); T.descend(c.alt, n, c.altOpt);
+    if (T.F(c.alt, c.altOpt) < T.F(c.path, c.opt) - 0.5) { c.path = Float64Array.from(c.alt); c.opt = { C, lC: 900 }; }
+  }
+  function moveDisc([x, y]) {
+    const u = Math.min(Math.max((x - panel(2).x0 - 15) / (ground.L * k), A[0] + 0.03), B[0] - 0.03);
+    const h = (ground.y_ref - ground.crop_top - (y - panel(2).y0 - 52) / k) / ground.L;
+    C.c[0] = u; C.c[1] = Math.min(Math.max(h, T.ground_h(u)), T.ground_h(u) + 0.3);
+    if (!S.con.moved) { S.con.moved = true; S.con.opt = { C, lC: 900 }; hint.setAttribute('opacity', 0); }
+    S.con.alt = arc(); S.con.altOpt = { C, lC: 900 };
+    if (!clock.playing) { for (let i = 0; i < 50; i++) replan(50); draw(); }
+  }
+  let dragging = false;
+  host.addEventListener('pointerdown', (e) => {
+    const q = toLogical(e);
+    if (!inCon(q)) return;
+    dragging = true; host.setPointerCapture(e.pointerId); moveDisc(q);
+  });
+  host.addEventListener('pointermove', (e) => {
+    const q = toLogical(e);
+    if (dragging) { moveDisc(q); return; }
+    const near = Math.hypot(q[0] - X(2, C.c[0]), q[1] - Y(2, C.c[1])) < C.r * ground.L * k + 8;
+    host.style.cursor = inCon(q) ? (near ? 'grab' : 'pointer') : '';
+  });
+  const stop = () => { dragging = false; };
+  host.addEventListener('pointerup', stop);
+  host.addEventListener('pointercancel', stop);
+
   const clock = loop((dt) => { step(dt); draw(); });
   playButton(document.getElementById('controls'), clock);
   // reduced motion: show each panel's settled state without replaying the animation
   function settle() {
     for (let i = 0; i < 100; i++) { T.descend(S.rep.path, 50, S.rep.opt); T.descend(S.con.path, 50, S.con.opt); }
-    S.tilt.opt.lM = 300; S.tilt.t = 6.5;
+    S.tilt.opt.lM = 500; S.tilt.t = 6.5;
     for (let i = 0; i < 200; i++) T.descend(S.tilt.path, 30, S.tilt.opt);
     for (let j = 0; j < 14; j++) { T.mh(S.mh.path, R, 2500, { window: 10 }); S.mh.samples.push({ p: Float64Array.from(S.mh.path), color: P.samples[j % 3] }); }
     S.rep.t = S.con.t = 3; S.mh.t = 5;

@@ -27,9 +27,9 @@
   img.src = '../img/alanine_F600.png';
   img.onload = () => draw();
 
-  const cap1 = rich(svg, 16, 66, '', { class: 'cap cap-em' });
-  const cap2 = rich(svg, 16, 88, '', { class: 'cap' });
-  const M = { x: 70, y: 118, s: 330 };     // map square
+  const cap1 = rich(svg, 16, 86, '', { class: 'cap cap-em' });
+  const cap2 = rich(svg, 16, 110, '', { class: 'cap' });
+  const M = { x: 70, y: 136, s: 314 };     // map square
   const ax = axes(svg, { x: M.x, y: M.y, w: M.s, h: M.s, xlim: [-180, 180], ylim: [-180, 180], xticks: [-90, 0, 90], yticks: [-90, 0, 90],
     xlabel: '\\i{ϕ} (degrees)', ylabel: '\\i{ψ} (degrees)', ylabelGap: 44 });
   // color bar of Fig. 7
@@ -46,7 +46,7 @@
   const keyG = el('g', {}, svg);
 
   // right panel: molecule or numbers
-  const RP = { x: 520, y: 118, w: 460, h: 330 };
+  const RP = { x: 520, y: 136, w: 460, h: 314 };
   const molG = el('g', {}, svg);
   const molInfo = rich(molG, RP.x + RP.w / 2, RP.y + RP.h + 22, '', { 'text-anchor': 'middle', class: 'sub' });
   const molNote = rich(molG, RP.x + RP.w / 2, RP.y + 6, 'Alanine dipeptide along the selected path', { 'text-anchor': 'middle', class: 'tick' });
@@ -54,11 +54,11 @@
 
   const TABS = [
     { key: 'a', name: 'Completion',
-      c1: 'Completion from endpoints and three interior observations.',
-      c2: 'LEAP is trained only on complete trajectories, so the observed states are specified only at inference.' },
+      c1: 'LEAP completes the path from endpoints and three interior observations.',
+      c2: 'We train LEAP only on complete trajectories and specify the observed states only at inference.' },
     { key: 'b', name: 'Preference Weight',
       c1: 'Increasing the basin preference raises \\i{M} from 0.23 to 0.81 for the shown path.',
-      c2: 'Inference objective \\i{J}_{\\i{λ}}(\\i{Φ}) = \\i{S}_{\\i{θ}}(\\i{Φ}) − \\i{λM}(\\i{Φ}), with the same learned 600 K action.' },
+      c2: 'We minimize \\i{S}_{\\i{θ}}(\\i{Φ}) − \\i{λM}(\\i{Φ}) with the same learned 600 K action.' },
     { key: 'c', name: 'Bound and Preference',
       c1: 'Adding |\\i{ϕ}| ≤ 150° changes the route while preserving the terminal condition.',
       c2: 'The preference only path enters the excluded angular region, while the constrained path stays within the bound.' },
@@ -74,7 +74,8 @@
   });
   const LAMS = { '0': [F7.cyan, [5, 3]], '5': [F7.white, [5, 2, 1.5, 2]], '20': [F7.leap, null], '50': [F7.pink, [1.5, 2.5]] };
   const LAM_ORDER = ['0', '5', '20', '50'];
-  const lamInfo = rich(svg, M.x + M.s, M.y - 8, '', { class: 'sub', 'text-anchor': 'end' });
+  const lamInfo = rich(svg, M.x + M.s - 8, M.y + 22, '', { class: 'sub', 'text-anchor': 'end', fill: '#ffffff',
+    style: 'fill:#ffffff;paint-order:stroke;stroke:#30334c;stroke-width:2.6px;stroke-linejoin:round' });   // inside the map's empty corner
 
   function refresh() {
     while (keyG.firstChild) keyG.removeChild(keyG.firstChild);
@@ -155,7 +156,8 @@
   }
   // fixed view: a rotation of 15 degrees from the principal axes that minimizes overlaps along every shown path
   const VIEW = [[0.969558, 0.103395, 0.221962], [-0.116128, 0.992211, 0.045066], [-0.215574, -0.06947, 0.974013]];
-  function drawMolecule(ctx, X0, yaw, hilite) {
+  let labelKey = null, labels = {};
+  function drawMolecule(ctx, X0, yaw, hilite, key) {
     const X = X0.map((a) => VIEW.map((r) => r[0] * a[0] + r[1] * a[1] + r[2] * a[2]));
     const cx = RP.x + RP.w / 2, cy = RP.y + RP.h / 2 + 8, sc = 40;
     const cy_ = Math.cos(yaw), sy_ = Math.sin(yaw), pitch = 0.3, cp = Math.cos(pitch), spp = Math.sin(pitch);
@@ -186,25 +188,37 @@
         ctx.lineWidth = 0.6; ctx.strokeStyle = 'rgba(40,40,50,.45)'; ctx.stroke();
       }
     }
-    // dihedral labels beside their bonds, on the side with the most room
+    // dihedral labels beside their bonds; a label keeps its side until it would touch an atom, then glides over
     const placed = [];
+    if (labelKey !== key) { labelKey = key; labels = {}; }
     for (const [a, b, s] of [[6, 8, 'ϕ'], [8, 14, 'ψ']]) {
       const mx_ = (proj[a][0] + proj[b][0]) / 2, my_ = (proj[a][1] + proj[b][1]) / 2;
       let nx = proj[a][1] - proj[b][1], ny = proj[b][0] - proj[a][0];
       const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
-      let best = null, room = -Infinity;
-      for (const off of [16, 20, 24]) for (const sg of [1, -1]) {
+      const room = (sg, off) => {
         const x = mx_ + sg * nx * off, y = my_ + sg * ny * off;
         let r = Infinity;
         proj.forEach((p, i) => { r = Math.min(r, Math.hypot(p[0] - x, p[1] - y) - RAD[MOL.elements[i]] * sc * 0.62 * p[3]); });
         placed.forEach(([px_, py_]) => { r = Math.min(r, Math.hypot(px_ - x, py_ - y) - 8); });
-        if (r - 0.15 * off > room) { room = r - 0.15 * off; best = [x, y]; }
+        return r;
+      };
+      let best = null, bestR = -Infinity;
+      for (const off of [16, 20, 24]) for (const sg of [1, -1]) {
+        const r = room(sg, off) - 0.15 * off;
+        if (r > bestR) { bestR = r; best = { sg, off }; }
       }
-      placed.push(best);
+      const L = labels[s];
+      const keep = L && !(room(L.sg, L.off) < 3 && bestR > room(L.sg, L.off) - 0.15 * L.off + 6);
+      const ch = keep ? L : best;
+      const tx = mx_ + ch.sg * nx * ch.off, ty = my_ + ch.sg * ny * ch.off;
+      const glide = 0.35;                       // per frame: follows the bond closely, eases any change of side
+      const x = L ? L.x + (tx - L.x) * glide : tx, y = L ? L.y + (ty - L.y) * glide : ty;
+      labels[s] = { sg: ch.sg, off: ch.off, x, y };
+      placed.push([x, y]);
       ctx.save(); ctx.font = 'italic 17px "Google Sans", "Noto Sans", sans-serif'; ctx.fillStyle = P.ink2;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.lineWidth = 4; ctx.strokeStyle = '#ffffff'; ctx.lineJoin = 'round';
-      ctx.strokeText(s, best[0], best[1]); ctx.fillText(s, best[0], best[1]); ctx.restore();
+      ctx.strokeText(s, x, y); ctx.fillText(s, x, y); ctx.restore();
     }
   }
   function shade(hex) {
@@ -261,7 +275,7 @@
       if (molKey) {
         const fr = MOL.paths[molKey];
         const ff = prog * (fr.frames.length - 1);
-        drawMolecule(ctx, molFrame(molKey, ff), 0.35 * Math.sin(t * 0.35), color === F7.white ? '#9aa0aa' : color);
+        drawMolecule(ctx, molFrame(molKey, ff), 0.35 * Math.sin(t * 0.35), color === F7.white ? '#9aa0aa' : color, molKey);
         const i = Math.min(Math.round(ff), fr.angles.length - 1);
         setRich(molInfo, '\\i{t} = ' + (prog * (main.length - 1) * AL.dt_ps).toFixed(2) + ' ps     \\i{ϕ} = ' + fr.angles[i][0].toFixed(0).replace('-', '−') + '°     \\i{ψ} = ' + fr.angles[i][1].toFixed(0).replace('-', '−') + '°');
       }

@@ -18,13 +18,13 @@
 </head>
 <body>
 
-<nav class="navbar" aria-label="Sections">
+<nav class="navbar" id="nav" aria-label="Sections">
   <a href="#method">Method</a>
   <a href="#inference">Inference</a>
   <a href="#experiments">Experiments</a>
   <a href="#BibTeX">BibTeX</a>
-  <a href="#" data-link="paper">Paper</a>
-  <a href="#" data-link="code">Code</a>
+  <a class="ext" href="#" data-link="paper">Paper</a>
+  <a class="ext" href="#" data-link="code">Code</a>
 </nav>
 
 <section class="hero">
@@ -62,7 +62,7 @@
     <div class="figure-frame">
       <iframe src="static/anim/teaser.html" title="LEAP in three steps" loading="eager"></iframe>
     </div>
-    <figcaption>A toy landscape with known dynamics. The last step uses its exact action.</figcaption>
+    <figcaption>A toy landscape. The observed paths come from its true dynamics, and the last step uses the action LEAP learned from them.</figcaption>
   </figure>
 </section>
 
@@ -87,7 +87,7 @@
   </div>
 </section>
 
-<section class="section" id="method">
+<section class="section" id="method" data-nav="method">
   <div class="container content">
     <h3 class="title">Learning Action Functionals from Trajectory Samples</h3>
     <p class="justified">LEAP needs trajectory samples for each context \(c\), such as endpoints, a terminal region or a horizon, but not the drift, potential or simulator likelihood. It anchors the unknown action to a tractable reference process and learns the remaining correction from complete trajectories.</p>
@@ -96,7 +96,7 @@
   </div>
 </section>
 
-<section class="section" id="inference">
+<section class="section" id="inference" data-nav="inference">
   <div class="container content">
     <h3 class="title">Downstream Trajectory Inference</h3>
     <p class="justified">Because \(S_\theta\) is an action on complete trajectories, we can reuse it after training. The same learned object can rank candidate paths, infer representative trajectories, incorporate mechanism preferences, impose soft constraints and define trajectory distributions. Each new request adds a term to the action and changes the inference problem without retraining the model. If the learned action is within \(\varepsilon\) of the true one, an optimized path stays within \(2\varepsilon\) of optimal.</p>
@@ -104,13 +104,13 @@
       <div class="figure-frame">
         <iframe src="static/anim/inference.html" title="Downstream trajectory inference with one action" loading="lazy"></iframe>
       </div>
-      <figcaption>The same toy landscape and exact action. Dashed paths are the solutions before the preference or penalty.</figcaption>
+      <figcaption>The action LEAP learned on the toy landscape. Dashed paths are the solutions before the preference or penalty. Drag the red disc to move the constraint.</figcaption>
     </figure>
     <p class="justified">Our approach applies broadly to trajectories from dynamical systems, including molecular simulations, stochastic physical systems and logged sequential processes, and may help analyze and steer systems in science, robotics and planning.</p>
   </div>
 </section>
 
-<section class="section" id="experiments">
+<section class="section" id="experiments" data-nav="experiments">
   <div class="container content">
     <h3 class="title">Recovering Dynamics under Terminal Selection</h3>
     <p class="justified">Trajectories of the double well \(dX_t = b(X_t)\,dt + \sqrt{2D}\,dW_t\) with \(b(x) = x - x^3\) start at \(x_0 = -1\) and are kept only if \(x_T \in [0.9, 1.1]\) at \(T = 3\). Selecting on the final state changes the distribution of every step, so local regression fits the selected process rather than the original drift. LEAP compares the selected paths with a Brownian reference selected by the same window, which changes their path log likelihood ratio only by a constant. LEAP reaches drift MSE \((3.2 \pm 2.7) \times 10^{-4}\), against 0.7752 for cubic regression, whose basis contains the exact drift. With the learned potential fixed, it also infers near optimal paths to a new endpoint, with true path cost 0.2506 against the analytic 0.2500 at \(T = 16\).</p>
@@ -118,33 +118,33 @@
       <div class="figure-frame">
         <iframe src="static/anim/double_well.html" title="Recovering dynamics under terminal selection" loading="lazy"></iframe>
       </div>
-      <figcaption>Paths are simulated live. Drift curves are the paper's fits over three seeds (mean ± SD).</figcaption>
+      <figcaption>We simulate the paths live from the same SDE. The drift curves show the LEAP and cubic regression fits over three seeds (mean ± SD).</figcaption>
     </figure>
   </div>
 </section>
 
-<section class="section">
+<section class="section" data-nav="experiments">
   <div class="container content">
     <h3 class="title">Recovering a Nonadditive Trajectory Action</h3>
-    <p class="justified">An unobserved physical property, like an unknown mass, can stay fixed during a trajectory while its effect accumulates over the full path. In a 31 body orbital system initialized from JPL HORIZONS, we sample \(z \in \{-1, +1\}\) once per path and change the solar mass to \(m_\odot(1 + z\eta)\). After marginalizing \(z\), the exact correction is \(\sum_k m_k + \log\cosh(\sum_k d_k)\), which no additive transition model can represent. LEAP-Local and Transition NCE stay at the constant prediction level (NRMSE 1.0013 and 1.0008). LEAP-Global sees the complete path and features from the nominal dynamics, but never \(z\). It reaches 0.2280 and recovers the hidden mass perturbation as \(1.02 \times 10^{-4}\), against the true \(1.04 \times 10^{-4}\). At 42 bodies and 256 transitions, 64,764 coordinates per path, it reaches 0.1107 while LEAP-Local stays at 1.0015.</p>
+    <p class="justified">An unobserved physical property, like an unknown mass, can stay fixed during a trajectory while its effect accumulates over the full path. In a 31 body orbital system initialized from JPL HORIZONS, we sample \(z \in \{-1, +1\}\) once per path and change the solar mass to \(m_\odot(1 + z\eta)\). After marginalizing \(z\), the exact correction is \(\sum_k m_k + \log\cosh(\sum_k d_k)\), which couples every transition of the path. Models that score one transition at a time, LEAP-Local and Transition NCE, stay at the constant prediction level (NRMSE 1.0013 and 1.0008). LEAP-Global sees the complete path with per step features of the nominal dynamics, including their sensitivity to the solar mass, but never \(z\). It reaches 0.2280 and recovers the hidden mass perturbation as \(1.02 \times 10^{-4}\), against the true \(1.04 \times 10^{-4}\). At 42 bodies and 256 transitions, 64,764 coordinates per path, it reaches 0.1107 while LEAP-Local stays at 1.0015.</p>
     <figure>
       <div class="figure-frame">
         <iframe src="static/anim/orbital.html" title="Recovering a nonadditive trajectory action" loading="lazy"></iframe>
       </div>
-      <figcaption>Held out paths. The open circle follows the evidence of the path on the left.</figcaption>
+      <figcaption>All paths are held out. The open circle follows the accumulated evidence of the path on the left.</figcaption>
     </figure>
   </div>
 </section>
 
-<section class="section">
+<section class="section" data-nav="experiments">
   <div class="container content">
     <h3 class="title">Reusing Learned Actions across Conditions and Objectives</h3>
-    <p class="justified">Molecular trajectories are often analyzed in a few collective coordinates whose effective dynamics have no closed form. We learn one action for alanine dipeptide in its backbone angles \((\phi, \psi)\) from 613 reactive C7eq&nbsp;→&nbsp;C7ax trajectories of OpenMM Langevin simulations at 600&nbsp;K, and keep it fixed. From endpoints and three interior states, it completes paths with circular MSE 0.0931, against 0.1191 for conditional diffusion and 0.1247 for conditional flow matching, which are trained with completion masks. With endpoints only, the conditional generators get a lower error. The same action transfers to 500&nbsp;K with AUROC 0.9579 within each context, against 0.9403 for a model trained at 500&nbsp;K, and takes basin preferences and angular constraints without retraining.</p>
+    <p class="justified">Molecular trajectories are often analyzed in a few collective coordinates whose effective dynamics have no closed form. We learn one action for alanine dipeptide in its backbone angles \((\phi, \psi)\) from 613 reactive C7eq&nbsp;→&nbsp;C7ax trajectories of OpenMM Langevin simulations at 600&nbsp;K. Keeping it fixed, we complete paths from a few observed states and add basin preferences and angular constraints, all without retraining. With the reference of the new temperature, the correction learned at 600&nbsp;K also scores 500&nbsp;K paths on par with a model trained at 500&nbsp;K (AUROC 0.9579 and 0.9403 within each context).</p>
     <figure>
       <div class="figure-frame">
         <iframe src="static/anim/alanine.html" title="Reuse of a fixed molecular action" loading="lazy"></iframe>
       </div>
-      <figcaption>Paths from the paper on the 600&nbsp;K free energy. The molecule shows restrained configurations at the angles along the path.</figcaption>
+      <figcaption>LEAP paths from the paper on the 600&nbsp;K free energy. The molecule shows restrained configurations at the angles along each path.</figcaption>
     </figure>
   </div>
 </section>
@@ -158,7 +158,7 @@
   </div>
 </section>
 
-<section class="section" id="BibTeX">
+<section class="section" id="BibTeX" data-nav="BibTeX">
   <div class="container content">
     <h2 class="title" style="text-align:left">BibTeX</h2>
     <div class="bib">
@@ -193,6 +193,23 @@
         var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = 'Selected';
       }
     });
+  })();
+  // the nav marks the section being read: the last one whose top has passed a third of the window
+  (function () {
+    var nav = document.getElementById('nav'), links = {}, sections = document.querySelectorAll('section[data-nav]');
+    nav.querySelectorAll('a[href^="#"]').forEach(function (a) { if (a.getAttribute('href').length > 1) links[a.getAttribute('href').slice(1)] = a; });
+    var queued = false;
+    function update() {
+      queued = false;
+      var key = null, line = window.innerHeight / 3;
+      sections.forEach(function (s) { if (s.getBoundingClientRect().top <= line) key = s.getAttribute('data-nav'); });
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) key = 'BibTeX';
+      for (var k in links) links[k].classList.toggle('active', k === key);
+      nav.classList.toggle('scrolled', window.scrollY > 8);
+    }
+    window.addEventListener('scroll', function () { if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
+    window.addEventListener('resize', update);
+    update();
   })();
 </script>
 </body>
