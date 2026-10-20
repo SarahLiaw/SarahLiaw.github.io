@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alanine Action Reuse</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro">
+<link rel="stylesheet" href="../css/fig.css">
+<style>
+  .tabs { left: 1.6%; top: 2.2%; }
+  .tabs button { font-size: clamp(10px, 1.45vw, 15px); border-radius: 999px; padding: 3px 11px; }
+</style>
+</head>
+<body>
+<main id="fig" role="img" aria-label="Reuse of a fixed molecular action on the alanine dipeptide Ramachandran map: completion from sparse observations, a basin preference whose weight changes the path, and an angular bound composed with the preference, with the molecule's conformation following the selected path."></main>
+<div class="tabs" id="tabs" role="tablist"></div>
+<div class="controls" id="controls"></div>
+<script src="../js/fig.js"></script>
+<script src="../data/alanine.js"></script>
+<script>
+(() => {
+  'use strict';
+  const { P, el, rich, setRich, stage, polyline, dot, axes, legend, loop, playButton, smooth } = Fig;
+  const AL = window.LEAP_ALANINE, F7 = P.fig7;
+  const W = 1000, H = 545;
+  const host = document.getElementById('fig');
+  const st = stage(host, W, H, () => draw());
+  const svg = st.svg;
+  const img = new Image();
+  img.src = '../img/alanine_F600.png';
+  img.onload = () => draw();
+
+  const cap1 = rich(svg, 16, 66, '', { class: 'cap cap-em' });
+  const cap2 = rich(svg, 16, 88, '', { class: 'cap' });
+  const M = { x: 70, y: 118, s: 330 };     // map square
+  const ax = axes(svg, { x: M.x, y: M.y, w: M.s, h: M.s, xlim: [-180, 180], ylim: [-180, 180], xticks: [-90, 0, 90], yticks: [-90, 0, 90],
+    xlabel: '\\i{ϕ} (degrees)', ylabel: '\\i{ψ} (degrees)', ylabelGap: 44 });
+  // color bar of Fig. 7
+  const cb = el('g', {}, svg);
+  const grad = el('linearGradient', { id: 'vir', x1: 0, y1: 1, x2: 0, y2: 0 }, el('defs', {}, svg));
+  AL.viridis.forEach((c, i) => el('stop', { offset: (i / (AL.viridis.length - 1)).toFixed(3), 'stop-color': c }, grad));
+  el('rect', { x: M.x + M.s + 12, y: M.y, width: 11, height: M.s, fill: 'url(#vir)' }, cb);
+  [0, 3, 6, 9, 12].forEach((v) => {
+    const y = M.y + M.s - v / 12 * M.s;
+    el('line', { x1: M.x + M.s + 23, x2: M.x + M.s + 27, y1: y, y2: y, class: 'axis' }, cb);
+    el('text', { x: M.x + M.s + 30, y: y + 4.5, class: 'tick' }, cb).textContent = v;
+  });
+  rich(cb, 0, 0, 'Empirical \\i{F} (kcal mol^{−1})', { class: 'tick', 'text-anchor': 'middle', transform: `translate(${M.x + M.s + 60},${M.y + M.s / 2}) rotate(90)` });
+  const keyG = el('g', {}, svg);
+
+  // right panel: molecule or numbers
+  const RP = { x: 520, y: 118, w: 460, h: 330 };
+  const molG = el('g', {}, svg);
+  const molInfo = rich(molG, RP.x + RP.w / 2, RP.y + RP.h + 22, '', { 'text-anchor': 'middle', class: 'sub' });
+  const molNote = rich(molG, RP.x + RP.w / 2, RP.y + 6, 'Alanine dipeptide along the selected path', { 'text-anchor': 'middle', class: 'tick' });
+  const numG = el('g', {}, svg);
+
+  const TABS = [
+    { key: 'a', name: 'a  Completion',
+      c1: 'Completion from endpoints and three interior observations.',
+      c2: 'LEAP is trained only on complete trajectories, so the observed states are specified only at inference.' },
+    { key: 'b', name: 'b  Preference weight',
+      c1: 'Increasing the basin preference raises \\i{M} from 0.23 to 0.81 for the shown path.',
+      c2: 'Inference objective \\i{J}_{\\i{λ}}(\\i{Φ}) = \\i{S}_{\\i{θ}}(\\i{Φ}) − \\i{λM}(\\i{Φ}), with the same learned 600 K action.' },
+    { key: 'c', name: 'c  Bound + preference',
+      c1: 'Adding |\\i{ϕ}| ≤ 150° changes the route while preserving the terminal condition.',
+      c2: 'The preference-only path enters the excluded angular region, while the constrained path stays within the bound.' },
+  ];
+  let tab = 0, lam = '0', which = 'bound_preference_20', t = 0, cycle = 0;
+  const tabsEl = document.getElementById('tabs');
+  const tabBtns = TABS.map((tb, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.setAttribute('role', 'tab'); b.textContent = tb.name;
+    b.addEventListener('click', () => select(i));
+    tabsEl.appendChild(b);
+    return b;
+  });
+  const LAMS = { '0': [F7.cyan, [5, 3]], '5': [F7.white, [5, 2, 1.5, 2]], '20': [F7.leap, null], '50': [F7.pink, [1.5, 2.5]] };
+  const LAM_ORDER = ['0', '5', '20', '50'];
+  const lamInfo = rich(svg, M.x + M.s, M.y - 8, '', { class: 'sub', 'text-anchor': 'end' });
+
+  function refresh() {
+    while (keyG.firstChild) keyG.removeChild(keyG.firstChild);
+    while (numG.firstChild) numG.removeChild(numG.firstChild);
+    const key = TABS[tab].key;
+    molG.setAttribute('display', key === 'a' ? 'none' : 'inline');
+    lamInfo.setAttribute('display', key === 'b' ? 'inline' : 'none');
+    if (key === 'a') {
+      legend(keyG, M.x, M.y + M.s + 62, [['line', F7.leap, 'LEAP'], ['dot', '#ffffff', 'Observed']], { widths: [70, 90] });
+      const lines = [['Given', 'start ◇, end □ and three interior frames ○'], ['Missing', 'the other eight saved frames'],
+        ['Fixed', 'the 600 K action, trained on complete paths only'], ['Solved', 'min over the missing frames of \\i{S}_{\\i{θ}}(\\i{Φ})']];
+      lines.forEach(([a, b], i) => {
+        rich(numG, RP.x + 40, RP.y + 92 + 40 * i, a, { class: 'sub', 'font-weight': 700, fill: P.ink2 });
+        rich(numG, RP.x + 120, RP.y + 92 + 40 * i, b, { class: 'sub' });
+      });
+    } else if (key === 'b') {
+      rich(keyG, M.x, M.y + M.s + 62, 'Dots mark saved frames (0.1 ps); the circle is the preferred region.', { class: 'tick' });
+    } else {
+      legend(keyG, M.x, M.y + M.s + 62, [['dash', F7.white, 'Preference only'], ['line', F7.leap, 'Both']], { widths: [150, 60] });
+    }
+  }
+  function select(i) {
+    tab = i; t = 0; cycle = 0;
+    if (TABS[i].key === 'b') lam = '0';
+    if (TABS[i].key === 'c') which = 'bound_preference_20';
+    tabBtns.forEach((b, j) => b.setAttribute('aria-selected', j === i ? 'true' : 'false'));
+    setRich(cap1, TABS[i].c1);
+    setRich(cap2, TABS[i].c2);
+    refresh();
+    draw();
+  }
+
+  // --- torus drawing
+  const mx = (phi) => M.x + (phi + 180) / 360 * M.s;
+  const my = (psi) => M.y + M.s - (psi + 180) / 360 * M.s;
+  const wrapd = (a) => ((a + 180) % 360 + 360) % 360 - 180;
+  function torusPath(ctx, pts, color, dash, width, upto) {
+    const n = upto === undefined ? pts.length - 1 : upto;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(M.x, M.y, M.s, M.s); ctx.clip();
+    for (const shift of [[0, 0], [360, 0], [-360, 0], [0, 360], [0, -360]]) {
+      ctx.beginPath();
+      let x = pts[0][0], y = pts[0][1];
+      ctx.moveTo(mx(x + shift[0]), my(y + shift[1]));
+      for (let i = 1; i <= n && i < pts.length; i++) {
+        const frac = Math.min(1, n - i + 1);
+        const dx = wrapd(pts[i][0] - pts[i - 1][0]), dy = wrapd(pts[i][1] - pts[i - 1][1]);
+        x += dx * frac; y += dy * frac;
+        ctx.lineTo(mx(x + shift[0]), my(y + shift[1]));
+      }
+      ctx.strokeStyle = '#30334c'; ctx.globalAlpha = 0.7; ctx.lineWidth = width + 1.1; ctx.setLineDash(dash || []); ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke();
+      ctx.strokeStyle = color; ctx.globalAlpha = 1; ctx.lineWidth = width; ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function knots(ctx, pts, color) {
+    for (let i = 1; i < pts.length - 1; i++) dot(ctx, mx(pts[i][0]), my(pts[i][1]), 2.1, color, '#30334c', 0.6);
+  }
+  function marker(ctx, x, y, shape) {
+    ctx.save(); ctx.fillStyle = '#fff'; ctx.strokeStyle = '#242538'; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    if (shape === 'D') { ctx.moveTo(x, y - 6); ctx.lineTo(x + 6, y); ctx.lineTo(x, y + 6); ctx.lineTo(x - 6, y); ctx.closePath(); }
+    else if (shape === 's') ctx.rect(x - 5, y - 5, 10, 10);
+    else ctx.arc(x, y, 4.6, 0, 2 * Math.PI);
+    ctx.fill(); ctx.stroke(); ctx.restore();
+  }
+  // position along a path at fractional knot index f (shortest arcs)
+  function along(pts, f) {
+    const i = Math.min(Math.floor(f), pts.length - 2), u = f - i;
+    return [wrapd(pts[i][0] + wrapd(pts[i + 1][0] - pts[i][0]) * u), wrapd(pts[i][1] + wrapd(pts[i + 1][1] - pts[i][1]) * u)];
+  }
+
+  // --- molecule: CPK-like spheres, depth sorted, slow turntable
+  const MOL = AL.molecule, ELC = { C: '#4b4f57', N: '#3a6fd8', O: '#e3402b', H: '#eceef1' }, RAD = { C: 0.5, N: 0.48, O: 0.47, H: 0.3 };
+  function molFrame(key, f) {
+    const fr = MOL.paths[key].frames, i = Math.min(Math.floor(f), fr.length - 2), u = f - i;
+    return fr[i].map((a, j) => a.map((v, c) => v + (fr[i + 1][j][c] - v) * u));
+  }
+  function drawMolecule(ctx, X, yaw, hilite) {
+    const cx = RP.x + RP.w / 2, cy = RP.y + RP.h / 2 + 8, sc = 40;
+    const cy_ = Math.cos(yaw), sy_ = Math.sin(yaw), pitch = 0.42, cp = Math.cos(pitch), spp = Math.sin(pitch);
+    const proj = X.map(([x, y, z]) => {
+      const x1 = cy_ * x + sy_ * z, z1 = -sy_ * x + cy_ * z;
+      const y2 = cp * y - spp * z1, z2 = spp * y + cp * z1;
+      const persp = 1 / (1 - z2 * 0.035);
+      return [cx + x1 * sc * persp, cy - y2 * sc * persp, z2, persp];
+    });
+    const items = [];
+    MOL.bonds.forEach(([a, b]) => items.push({ z: (proj[a][2] + proj[b][2]) / 2 - 0.01, bond: [a, b] }));
+    proj.forEach((p, i) => items.push({ z: p[2], atom: i }));
+    items.sort((p, q) => p.z - q.z);
+    const special = { '6-8': 'ϕ', '8-6': 'ϕ', '8-14': 'ψ', '14-8': 'ψ' };
+    for (const it of items) {
+      if (it.bond) {
+        const [a, b] = it.bond, pa = proj[a], pb = proj[b];
+        const s = special[a + '-' + b];
+        ctx.save();
+        ctx.strokeStyle = s ? hilite : '#a3a8b0'; ctx.lineWidth = (s ? 6 : 4.2) * pa[3]; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pb[0], pb[1]); ctx.stroke();
+        ctx.restore();
+      } else {
+        const p = proj[it.atom], e = MOL.elements[it.atom], r = RAD[e] * sc * 0.62 * p[3];
+        const g = ctx.createRadialGradient(p[0] - r * 0.35, p[1] - r * 0.35, r * 0.1, p[0], p[1], r);
+        g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, ELC[e]); g.addColorStop(1, shade(ELC[e]));
+        ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, 2 * Math.PI); ctx.fillStyle = g; ctx.fill();
+        ctx.lineWidth = 0.6; ctx.strokeStyle = 'rgba(40,40,50,.45)'; ctx.stroke();
+      }
+    }
+    // dihedral labels at the rotatable bonds
+    for (const [a, b, s] of [[6, 8, 'ϕ'], [8, 14, 'ψ']]) {
+      const x = (proj[a][0] + proj[b][0]) / 2, y = (proj[a][1] + proj[b][1]) / 2;
+      ctx.save(); ctx.font = 'italic 17px "Google Sans", "Noto Sans", sans-serif'; ctx.fillStyle = P.ink2;
+      ctx.fillText(s, x + 9, y - 9); ctx.restore();
+    }
+  }
+  function shade(hex) {
+    const n = parseInt(hex.slice(1), 16), f = 0.55;
+    return 'rgb(' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => Math.round(v * f)).join(',') + ')';
+  }
+
+  const PLAY = 4.2, HOLD = 1.6;
+  function draw() {
+    const ctx = st.ctx, key = TABS[tab].key;
+    st.clear();
+    if (img.complete && img.naturalWidth) ctx.drawImage(img, M.x, M.y, M.s, M.s);
+    const prog = smooth(Math.min(t, PLAY) / PLAY);
+    let main = null, molKey = null, color = F7.leap;
+    if (key === 'a') {
+      const p = AL.completion.leap, obs = AL.completion.observed;
+      torusPath(ctx, p, F7.leap, null, 1.6, prog * (p.length - 1));
+      knots(ctx, p, F7.leap);
+      AL.completion.observed_index.forEach((i) => marker(ctx, mx(obs[i][0]), my(obs[i][1]), 'o'));
+      main = p;
+    } else if (key === 'b') {
+      ctx.save(); ctx.beginPath(); ctx.arc(mx(-60), my(-40), 30 / 360 * M.s, 0, 2 * Math.PI);
+      ctx.fillStyle = 'rgba(248,187,163,0.5)'; ctx.fill(); ctx.setLineDash([1.5, 2]); ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.8; ctx.stroke(); ctx.restore();
+      for (const v of Object.keys(LAMS)) {
+        if (v === lam) continue;
+        torusPath(ctx, AL.sweep[v], LAMS[v][0], LAMS[v][1], 1.0, undefined);
+      }
+      const p = AL.sweep[lam];
+      torusPath(ctx, p, LAMS[lam][0], LAMS[lam][1], 2.0, prog * (p.length - 1));
+      knots(ctx, p, LAMS[lam][0]);
+      main = p; molKey = 'preference_sweep_' + lam; color = LAMS[lam][0];
+      setRich(lamInfo, '\\i{λ} = ' + lam + ',   \\i{M}(\\i{Φ}) = ' + AL.sweep_M[lam].toFixed(2));
+    } else {
+      ctx.save();
+      ctx.fillStyle = 'rgba(232,233,234,0.62)';
+      ctx.fillRect(mx(-180), M.y, mx(-150) - mx(-180), M.s);
+      ctx.fillRect(mx(150), M.y, mx(180) - mx(150), M.s);
+      ctx.setLineDash([1.2, 1.6]); ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 0.9;
+      ctx.strokeRect(mx(30), my(0), mx(130) - mx(30), my(-180) - my(0));
+      ctx.beginPath(); ctx.arc(mx(-60), my(-40), 30 / 360 * M.s, 0, 2 * Math.PI); ctx.fillStyle = 'rgba(248,187,163,0.5)'; ctx.fill();
+      ctx.restore();
+      ctx.save(); ctx.font = 'italic 15px "Google Sans", "Noto Sans", sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('B', mx(76), my(-150)); ctx.restore();
+      const po = AL.bound.preference_only_20, both = AL.bound.bound_preference_20;
+      torusPath(ctx, po, F7.white, [5, 2, 1.5, 2], 1.4, which === 'preference_only_20' ? prog * (po.length - 1) : undefined);
+      torusPath(ctx, both, F7.leap, null, 1.9, which === 'bound_preference_20' ? prog * (both.length - 1) : undefined);
+      knots(ctx, both, F7.leap);
+      main = which === 'bound_preference_20' ? both : po; molKey = which; color = which === 'bound_preference_20' ? F7.leap : '#8d93a0';
+    }
+    if (main) {
+      marker(ctx, mx(main[0][0]), my(main[0][1]), 'D');
+      marker(ctx, mx(main[main.length - 1][0]), my(main[main.length - 1][1]), 's');
+      const f = prog * (main.length - 1), q = along(main, f);
+      if (t < PLAY + HOLD) dot(ctx, mx(q[0]), my(q[1]), 4.4, '#fff', '#242538', 1.3);
+      if (molKey) {
+        const fr = MOL.paths[molKey];
+        const ff = prog * (fr.frames.length - 1);
+        drawMolecule(ctx, molFrame(molKey, ff), 0.9 + 0.22 * Math.sin(t * 0.35), color === F7.white ? '#9aa0aa' : color);
+        const i = Math.min(Math.round(ff), fr.angles.length - 1);
+        setRich(molInfo, '\\i{t} = ' + (prog * (main.length - 1) * AL.dt_ps).toFixed(2) + ' ps     \\i{ϕ} = ' + fr.angles[i][0].toFixed(0) + '°     \\i{ψ} = ' + fr.angles[i][1].toFixed(0) + '°');
+      }
+    }
+  }
+
+  // plays a once, b for each preference weight, c for both routes, then repeats
+  const CYCLES = { a: 1, b: 4, c: 2 };
+  const clock = loop((dt) => {
+    t += dt;
+    if (t > PLAY + HOLD + 0.6) {
+      t = 0; cycle++;
+      const key = TABS[tab].key;
+      if (cycle >= CYCLES[key]) { select((tab + 1) % TABS.length); return; }
+      if (key === 'b') lam = LAM_ORDER[cycle];
+      if (key === 'c') which = which === 'bound_preference_20' ? 'preference_only_20' : 'bound_preference_20';
+    }
+    draw();
+  });
+  playButton(document.getElementById('controls'), clock);
+  select(Fig.query('tab', 0));
+  if (Fig.query('lam', null) !== null) lam = String(Fig.query('lam', 0));
+  t = Fig.reduced ? PLAY : Fig.query('t', 0);
+  draw();
+})();
+</script>
+</body>
+</html>

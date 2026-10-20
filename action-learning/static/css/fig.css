@@ -1,0 +1,57 @@
+/* Shared look of every animated figure: paper-white panel, the page font, the paper's palette. */
+:root {
+  --paper: #ffffff;
+  --ink: #1b1b1e;
+  --ink-2: #4a4f5c;
+  --muted: #8c8c8c;
+  --grid: #e9e9e9;
+  --rule: #d9dbe0;
+  --leap: #2171b5;
+  --local: #d62728;
+  --regime-hi: #6a51a3;
+  --regime-lo: #238b45;
+  --basin-a: #114d68;
+  --basin-b: #b26aa8;
+  --data: #ea0700;
+  --ref: #535353;
+  --accent: #156082;
+  --chip: #f2f4f7;
+  --serif: "Google Sans", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink); }
+body { font-family: var(--serif); overflow: hidden; }
+.fig { position: relative; width: 100%; aspect-ratio: var(--aspect, 16 / 9); max-width: 100%; }
+.fig canvas, .fig svg.layer { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.fig svg.layer { overflow: visible; }
+svg text { font-family: var(--serif); fill: var(--ink); }
+svg .lbl { font-size: 15.5px; fill: var(--ink-2); }
+svg .ttl { font-size: 18px; font-weight: 500; fill: var(--ink); }
+svg .sub { font-size: 15.5px; fill: var(--ink-2); }
+svg .tick { font-size: 13.5px; fill: #555b66; }
+svg .axis { stroke: #5a5f69; stroke-width: 1; fill: none; }
+svg .gridline { stroke: var(--grid); stroke-width: 1; fill: none; }
+svg .halo { paint-order: stroke; stroke: #ffffff; stroke-width: 3.5px; stroke-linejoin: round; }
+svg .cap { font-size: 16.5px; fill: var(--ink-2); }
+svg .cap-em { font-weight: 500; fill: var(--ink); font-size: 18px; }
+.controls { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; z-index: 5; }
+.controls button, .tabs button {
+  font-family: var(--serif); font-size: 14px; color: var(--ink-2); background: #fff;
+  border: 1px solid #cfd4dc; border-radius: 6px; padding: 4px 10px; cursor: pointer; line-height: 1.2;
+}
+.controls button:hover, .tabs button:hover { background: #f4f6f9; }
+.controls button:focus-visible, .tabs button:focus-visible, input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.controls .icon { width: 30px; height: 28px; padding: 0; display: grid; place-items: center; }
+.controls .icon svg { width: 14px; height: 14px; fill: currentColor; }
+.tabs { position: absolute; z-index: 5; display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button[aria-selected="true"] { color: #fff; background: var(--accent); border-color: var(--accent); }
+.slider { position: absolute; z-index: 5; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-2); }
+.slider input { accent-color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .controls .icon { outline: 1px dashed var(--muted); } }
+/* narrow frames: keep the drawing, show only the current stage, let the page caption carry the text */
+@media (max-width: 600px) {
+  svg .cap { display: none; }
+  .chips button:not([aria-current="step"]), .tabs button:not([aria-selected="true"]) { display: none; }
+  .controls { right: 4px; bottom: 4px; transform: scale(.8); transform-origin: bottom right; }
+}

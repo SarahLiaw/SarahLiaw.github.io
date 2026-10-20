@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LEAP Overview Animation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro">
+<link rel="stylesheet" href="../css/fig.css">
+<style>
+  .chips { position: absolute; left: 1.6%; top: 2.2%; display: flex; gap: 6px; z-index: 5; flex-wrap: wrap; }
+  .chips button { font-family: var(--serif); font-size: clamp(10px, 1.45vw, 15px); color: var(--ink-2); background: #fff;
+    border: 1px solid #cfd4dc; border-radius: 999px; padding: 3px 11px; cursor: pointer; }
+  .chips button[aria-current="step"] { color: #fff; background: var(--accent); border-color: var(--accent); }
+</style>
+</head>
+<body>
+<main id="fig" role="img" aria-label="Animated version of Figure 2. Observed paths follow the physics over the barrier from A to B; reference paths from Brownian motion with the same endpoints cut through the barrier; LEAP learns the correction between them from complete paths; minimizing the learned action lifts a reference path over the barrier."></main>
+<div class="chips" id="chips"></div>
+<div class="controls" id="controls"></div>
+<script src="../js/fig.js"></script>
+<script src="../js/toy.js"></script>
+<script src="../data/toy.js"></script>
+<script src="../data/toy_paths.js"></script>
+<script>
+(() => {
+  'use strict';
+  const { P, el, rich, setRich, stage, polyline, dot, loop, playButton, smooth, clamp } = Fig;
+  const W = 1000, H = 545;
+  const host = document.getElementById('fig');
+  const st = stage(host, W, H, () => draw());
+  const ground = window.LEAP_TOY_GROUND;
+  const T = LEAPToy.make(ground);
+  const R = LEAPToy.rng(11);
+  const [A, B] = T.ends();
+  const N = T.params.N, D = T.params.D;
+
+  // Landscape image of Figs. 1-3 in the logical frame.
+  const k = W / ground.L, oy = 88;
+  const X = (u) => u * ground.L * k;
+  const Y = (h) => oy + (ground.y_ref - h * ground.L - ground.crop_top) * k;
+  const img = new Image();
+  img.src = '../img/landscape.png';
+  img.onload = () => draw();
+
+  // Observed paths: Metropolis-Hastings samples of the toy dynamics between A and B.
+  // Reference paths: Brownian bridges with the same endpoints, duration and diffusion (no drift, no landscape).
+  const data = window.LEAP_TOY_PATHS.paths.map((p) => Float64Array.from(p));
+  const bridge = () => T.bridge(A, B, N, R, D);
+  const toXY = (p) => { const n = p.length / 2, xs = new Float64Array(n), ys = new Float64Array(n);
+    for (let i = 0; i < n; i++) { xs[i] = X(p[2 * i]); ys[i] = Y(p[2 * i + 1]); } return [xs, ys]; };
+  const firstData = [0, 4, 8, 13].map((i) => toXY(data[i]));
+  const firstRefs = [0, 1, 2, 3].map(() => toXY(bridge()));
+  const batches = [];
+  for (let bi = 0; bi < 6; bi++) batches.push({ obs: toXY(data[(bi * 5 + 2) % data.length]), refs: [0, 1, 2, 3].map(() => toXY(bridge())) });
+
+  // Stage 3: descend the action from one reference path.
+  let rep, repXY, opt = {}, repS = 0, repStartS = 0;
+  const repSeed = bridge();
+  function resetRep() { rep = Float64Array.from(repSeed); opt = {}; repS = repStartS = T.S(rep); repXY = toXY(rep); }
+  resetRep();
+
+  const svg = st.svg;
+  const cap1 = rich(svg, 16, 62, '', { class: 'cap cap-em' });
+  const cap2 = rich(svg, 16, 88, '', { class: 'cap' });
+  const lab = el('g', {}, svg);
+  const tagRef = rich(lab, 0, 0, 'reference paths', { class: 'tick halo', 'text-anchor': 'middle', fill: P.ref });
+  const tagObs = rich(lab, 0, 0, 'observed paths', { class: 'tick halo', 'text-anchor': 'middle', fill: P.data });
+  const ro = rich(svg, 984, 128, '', { 'text-anchor': 'end', class: 'sub' });
+
+  const STAGES = [
+    { name: '1. Reference Paths', t0: 0 },
+    { name: '2. Contrastive Learning on Paths', t0: 8 },
+    { name: '3. LEAP Action', t0: 15.8 },
+  ];
+  const DUR = 23;
+  const chips = document.getElementById('chips');
+  let clockT = 0, capKey = '';
+  const chipEls = STAGES.map((s, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = s.name;
+    b.addEventListener('click', () => { clockT = s.t0 + 0.001; if (i === 2) resetRep(); draw(); });
+    chips.appendChild(b);
+    return b;
+  });
+  function caption(a, b) {
+    if (a + '|' + b === capKey) return;
+    capKey = a + '|' + b;
+    setRich(cap1, a);
+    setRich(cap2, b);
+  }
+  const partial = (xy, f) => Math.max(2, Math.round(f * xy[0].length));
+  function tag(t, x, y, a) { t.setAttribute('x', x); t.setAttribute('y', y); t.setAttribute('opacity', a); }
+
+  function draw() {
+    const t = clockT, ctx = st.ctx;
+    st.clear();
+    if (img.complete && img.naturalWidth) ctx.drawImage(img, 0, oy, W, img.naturalHeight * k);
+    const s = t < STAGES[1].t0 ? 0 : t < STAGES[2].t0 ? 1 : 2;
+    chipEls.forEach((c, i) => c.setAttribute('aria-current', i === s ? 'step' : 'false'));
+    let aObs = 0, aRef = 0;
+    ro.setAttribute('opacity', 0);
+
+    if (s === 0) {
+      firstData.forEach((xy, i) => {
+        const f = clamp((t - 0.3 - 0.55 * i) / 2.2);
+        if (f <= 0) return;
+        const n = partial(xy, smooth(f));
+        polyline(ctx, xy[0], xy[1], n, { color: P.data, width: 1.8 });
+        if (f < 1) dot(ctx, xy[0][n - 1], xy[1][n - 1], 3.8, P.data, '#fff', 1);
+      });
+      aObs = smooth((t - 2.2) / 0.6);
+      firstRefs.forEach((xy, i) => {
+        const f = clamp((t - 4.1 - 0.5 * i) / 1.8);
+        if (f <= 0) return;
+        const n = partial(xy, smooth(f));
+        polyline(ctx, xy[0], xy[1], n, { color: P.ref, width: 1.4, dash: [5, 3.5] });
+        if (f < 1) dot(ctx, xy[0][n - 1], xy[1][n - 1], 3.4, P.ref, '#fff', 1);
+      });
+      aRef = smooth((t - 5.6) / 0.6);
+      if (t < 4.1) caption('Observed trajectories follow the physics: they climb over the barrier from A to B.',
+        'LEAP needs only these samples, not the underlying drift, potential or simulator likelihood.');
+      else caption('Sample tractable reference paths with the same endpoints, here Brownian motion.',
+        'This reference ignores the physics, so its paths cut straight through the barrier.');
+    } else if (s === 1) {
+      const u = t - STAGES[1].t0, per = 1.3, bi = Math.floor(u / per) % batches.length, ph = (u % per) / per;
+      const a = Math.min(smooth(ph / 0.12), 1 - smooth((ph - 0.88) / 0.12));
+      const bt = batches[bi];
+      bt.refs.forEach((xy) => polyline(ctx, xy[0], xy[1], xy[0].length, { color: P.ref, width: 1.4, dash: [5, 3.5], alpha: 0.95 * a }));
+      polyline(ctx, bt.obs[0], bt.obs[1], bt.obs[0].length, { color: P.data, width: 2.4, alpha: a, halo: 'rgba(255,255,255,.9)' });
+      aObs = 1; aRef = 1;
+      caption('LEAP learns the path log-ratio \\i{G}_{\\i{θ}}(\\i{Φ}; \\i{c}) of data to reference from complete paths.',
+        'Each step compares one observed trajectory with \\i{K} reference trajectories from the same context.');
+    } else {
+      const u = t - STAGES[2].t0;
+      if (u > 0.8 && u < 5) {
+        const iters = Math.max(1, Math.round(1 + 10 * smooth((u - 0.8) / 3)));
+        repS = T.descend(rep, iters, opt);
+        repXY = toXY(rep);
+      }
+      const g = smooth((u - 0.8) / 3.2);
+      const d0 = toXY(repSeed);
+      polyline(ctx, d0[0], d0[1], d0[0].length, { color: P.ref, width: 1.3, dash: [5, 3.5], alpha: 0.55 });
+      polyline(ctx, repXY[0], repXY[1], repXY[0].length, { color: P.action[0], width: 1.6 + 1.2 * g, halo: 'rgba(255,255,255,.85)' });
+      ro.setAttribute('opacity', smooth((u - 0.6) / 0.5));
+      setRich(ro, 'action of the blue path: ' + repS.toFixed(0) + (u > 1 ? '   (start: ' + repStartS.toFixed(0) + ')' : ''));
+      caption('The action \\i{S}_{\\i{θ}} = reference action − learned correction scores complete paths.',
+        'Lower action means a more probable path. Minimizing it lifts a reference path over the barrier.');
+    }
+    tag(tagObs, X(0.36), Y(0.17), aObs * (s < 2 ? 1 : 0));
+    tag(tagRef, X(0.6), Y(-0.05), aRef * (s < 2 ? 1 : 0));
+    dot(ctx, X(A[0]), Y(A[1]), 6.5, P.A, '#fff', 1.4);
+    dot(ctx, X(B[0]), Y(B[1]), 6.5, P.B, '#fff', 1.4);
+  }
+
+  const clock = loop((dt) => {
+    const prev = clockT;
+    clockT += dt;
+    if (clockT >= DUR) { clockT = 0; resetRep(); }
+    if (prev < STAGES[2].t0 && clockT >= STAGES[2].t0) resetRep();
+    draw();
+  });
+  playButton(document.getElementById('controls'), clock);
+  const t0 = Fig.reduced ? 20 : Fig.query('t', 0);
+  if (t0) {
+    clockT = t0;
+    if (t0 >= STAGES[2].t0) { for (let f = 0; f < Math.min(t0 - STAGES[2].t0 - 0.8, 4.2) * 60; f++) T.descend(rep, 11, opt); repS = T.S(rep); repXY = toXY(rep); }
+  }
+  draw();
+})();
+</script>
+</body>
+</html>

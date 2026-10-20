@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LEAP Downstream Tasks</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro">
+<link rel="stylesheet" href="../css/fig.css">
+</head>
+<body>
+<main id="fig" role="img" aria-label="Figure 3 animated. One action on a toy landscape supports four tasks at once: the lowest-action representative trajectory, a tilt toward an upper route whose weight grows until the route switches, a soft constraint that sends the path over a red disc, and Metropolis-Hastings sampling of plausible paths."></main>
+<div class="controls" id="controls"></div>
+<script src="../js/fig.js"></script>
+<script src="../js/toy.js"></script>
+<script src="../data/toy.js"></script>
+<script>
+(() => {
+  'use strict';
+  const { P, el, rich, setRich, stage, polyline, dot, loop, playButton, smooth } = Fig;
+  const W = 1000, H = 545;
+  const st = stage(document.getElementById('fig'), W, H, () => draw());
+  const svg = st.svg;
+  const ground = window.LEAP_TOY_GROUND;
+  const T = LEAPToy.make(ground);
+  const [A, B] = T.ends();
+  const N = T.params.N, d = T.params.d;
+  const ub = ground.bump_px / ground.L, gb = T.ground_h(ub);
+  const img = new Image();
+  img.src = '../img/landscape.png';
+  img.onload = () => draw();
+
+  // 2 x 2 panels in the order of Fig. 3
+  const PW = 500, PH = 272, k = 470 / ground.L;
+  const panel = (i) => ({ x0: (i % 2) * PW, y0: Math.floor(i / 2) * PH });
+  const X = (i, u) => panel(i).x0 + 15 + u * ground.L * k;
+  const Y = (i, h) => panel(i).y0 + 52 + (ground.y_ref - h * ground.L - ground.crop_top) * k;
+  const TITLES = [
+    ['Representative Trajectory', 'min_{\\i{Φ}} \\i{S}_{\\i{θ}}(\\i{Φ}; \\i{c})'],
+    ['Mechanism Control (Tilting)', 'min_{\\i{Φ}} \\i{S}_{\\i{θ}}(\\i{Φ}; \\i{c}) − \\i{λM}(\\i{Φ})'],
+    ['Soft Constraints', 'min_{\\i{Φ}} \\i{S}_{\\i{θ}}(\\i{Φ}; \\i{c}) + \\i{λC}(\\i{Φ})'],
+    ['Trajectory Sampling', '\\i{π}(\\i{Φ} | \\i{c}) ∝ exp(−\\i{S}_{\\i{θ}}(\\i{Φ}; \\i{c}))'],
+  ];
+  TITLES.forEach(([a, b], i) => {
+    const { x0, y0 } = panel(i);
+    rich(svg, x0 + PW / 2, y0 + 24, a, { class: 'sub', 'text-anchor': 'middle', 'font-weight': 500, fill: P.exact });
+    rich(svg, x0 + PW / 2, y0 + 45, b, { class: 'tick', 'text-anchor': 'middle' });
+  });
+  el('line', { x1: PW, x2: PW, y1: 12, y2: H - 12, stroke: '#d9dbe0', 'stroke-width': 1 }, svg);
+  el('line', { x1: 12, x2: W - 12, y1: PH, y2: PH, stroke: '#d9dbe0', 'stroke-width': 1 }, svg);
+  const lamText = rich(svg, panel(1).x0 + PW - 18, panel(1).y0 + 250, '', { class: 'tick', 'text-anchor': 'end' });
+  rich(svg, panel(1).x0 + PW / 2, Y(1, gb + d + 0.09 + 0.06) - 4, 'reward region \\i{M}', { class: 'tick', 'text-anchor': 'middle' });
+
+  function arc() {
+    const p = new Float64Array(2 * (N + 1));
+    for (let i = 0; i <= N; i++) {
+      const s = i / N;
+      p[2 * i] = A[0] + (B[0] - A[0]) * s;
+      p[2 * i + 1] = A[1] + (B[1] - A[1]) * s + 0.33 * Math.sin(Math.PI * s);
+    }
+    return p;
+  }
+  function solve(o, n) { const p = arc(); for (let i = 0; i < n; i++) T.descend(p, 50, o); return p; }
+  const M = { c: [ub, gb + d + 0.09], su: 0.16, sh: 0.045 };
+  const C = { c: [ub, gb + d + 0.03], r: 0.05 };
+  const base = solve({}, 100);                    // lambda = 0 path, dashed in panels 2-3
+
+  const R = LEAPToy.rng(17);
+  const S = {
+    rep: { path: arc(), opt: {}, t: 0 },
+    tilt: { path: Float64Array.from(base), opt: { M, lM: 0 }, t: 0 },
+    con: { path: arc(), opt: { C, lC: 900 }, t: 0 },
+    mh: { path: Float64Array.from(base), samples: [], since: 0, t: 0 },
+  };
+
+  function xy(i, p) {
+    const n = p.length / 2, xs = new Float64Array(n), ys = new Float64Array(n);
+    for (let j = 0; j < n; j++) { xs[j] = X(i, p[2 * j]); ys[j] = Y(i, p[2 * j + 1]); }
+    return [xs, ys];
+  }
+  function landscape(i) {
+    const { x0, y0 } = panel(i);
+    if (img.complete && img.naturalWidth) st.ctx.drawImage(img, x0 + 15, y0 + 52, img.naturalWidth * k, img.naturalHeight * k);
+  }
+  function ends(i) { dot(st.ctx, X(i, A[0]), Y(i, A[1]), 5.2, P.A, '#fff', 1.2); dot(st.ctx, X(i, B[0]), Y(i, B[1]), 5.2, P.B, '#fff', 1.2); }
+
+  function draw() {
+    const ctx = st.ctx;
+    st.clear();
+    for (let i = 0; i < 4; i++) landscape(i);
+    { const q = xy(0, S.rep.path); polyline(ctx, q[0], q[1], q[0].length, { color: P.exact, width: 2.2, halo: 'rgba(255,255,255,.85)' }); }
+    {
+      ctx.save(); ctx.beginPath();
+      ctx.ellipse(X(1, M.c[0]), Y(1, M.c[1]), 1.4 * M.su * ground.L * k, 1.4 * M.sh * ground.L * k, 0, 0, 2 * Math.PI);
+      ctx.fillStyle = 'rgba(21,96,130,0.08)'; ctx.fill(); ctx.setLineDash([2, 3]); ctx.strokeStyle = P.accent; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
+      const b = xy(1, base); polyline(ctx, b[0], b[1], b[0].length, { color: P.cand, width: 1.4, dash: [5, 3.5] });
+      const q = xy(1, S.tilt.path); polyline(ctx, q[0], q[1], q[0].length, { color: P.exact, width: 2.2, halo: 'rgba(255,255,255,.85)' });
+      setRich(lamText, '\\i{λ} = ' + S.tilt.opt.lM.toFixed(0));
+    }
+    {
+      ctx.save(); ctx.globalAlpha = 0.85; dot(ctx, X(2, C.c[0]), Y(2, C.c[1]), C.r * ground.L * k, P.disc); ctx.restore();
+      const b = xy(2, base); polyline(ctx, b[0], b[1], b[0].length, { color: P.cand, width: 1.4, dash: [5, 3.5] });
+      const q = xy(2, S.con.path); polyline(ctx, q[0], q[1], q[0].length, { color: P.accent, width: 2.2, halo: 'rgba(255,255,255,.85)' });
+    }
+    {
+      S.mh.samples.forEach((s, j) => {
+        const q = xy(3, s.p), age = (S.mh.samples.length - 1 - j) / Math.max(1, S.mh.samples.length);
+        polyline(ctx, q[0], q[1], q[0].length, { color: s.color, width: 1.05, alpha: 0.9 - 0.5 * age });
+      });
+    }
+    for (let i = 0; i < 4; i++) ends(i);
+  }
+
+  function step(dt) {
+    S.rep.t += dt;
+    if (S.rep.t > 6) { S.rep.t = 0; S.rep.path = arc(); S.rep.opt = {}; }
+    if (S.rep.t > 0.6) T.descend(S.rep.path, Math.round(2 + 20 * smooth((S.rep.t - 0.6) / 2)), S.rep.opt);
+    // tilting: the weight grows with a warm start, and the route switches past a threshold
+    S.tilt.t += dt;
+    if (S.tilt.t > 9) { S.tilt.t = 0; S.tilt.path = Float64Array.from(base); S.tilt.opt = { M, lM: 0 }; }
+    S.tilt.opt.lM = 300 * smooth(Math.min(S.tilt.t, 6.5) / 6.5);
+    T.descend(S.tilt.path, 30, S.tilt.opt);
+    S.con.t += dt;
+    if (S.con.t > 6) { S.con.t = 0; S.con.path = arc(); S.con.opt = { C, lC: 900 }; }
+    if (S.con.t > 0.6) T.descend(S.con.path, Math.round(2 + 20 * smooth((S.con.t - 0.6) / 2)), S.con.opt);
+    // sampling: Metropolis-Hastings with reference-bridge proposals
+    const m = S.mh;
+    T.mh(m.path, R, 2500, { window: 10 });
+    m.since += dt; m.t += dt;
+    if (m.since > 0.35) { m.since = 0; m.samples.push({ p: Float64Array.from(m.path), color: P.samples[m.samples.length % 3] }); }
+    if (m.t > 9) { m.t = 0; m.samples = []; }
+  }
+
+  const clock = loop((dt) => { step(dt); draw(); });
+  playButton(document.getElementById('controls'), clock);
+  // reduced motion: show each panel's settled state without replaying the animation
+  function settle() {
+    for (let i = 0; i < 100; i++) { T.descend(S.rep.path, 50, S.rep.opt); T.descend(S.con.path, 50, S.con.opt); }
+    S.tilt.opt.lM = 300; S.tilt.t = 6.5;
+    for (let i = 0; i < 200; i++) T.descend(S.tilt.path, 30, S.tilt.opt);
+    for (let j = 0; j < 14; j++) { T.mh(S.mh.path, R, 2500, { window: 10 }); S.mh.samples.push({ p: Float64Array.from(S.mh.path), color: P.samples[j % 3] }); }
+    S.rep.t = S.con.t = 3; S.mh.t = 5;
+  }
+  if (Fig.reduced) settle();
+  else {
+    // start the sampler with a few samples so the first frame is complete
+    for (let j = 0; j < 6; j++) { T.mh(S.mh.path, R, 2500, { window: 10 }); S.mh.samples.push({ p: Float64Array.from(S.mh.path), color: P.samples[j % 3] }); }
+    for (let f = 0; f < Fig.query('t', 0) * 60; f++) step(1 / 60);
+  }
+  draw();
+})();
+</script>
+</body>
+</html>

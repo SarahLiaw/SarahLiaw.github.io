@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Double Well Recovery</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro">
+<link rel="stylesheet" href="../css/fig.css">
+<style>
+  .tabs { left: 1.6%; top: 2.2%; }
+  .tabs button { font-size: clamp(10px, 1.45vw, 15px); border-radius: 999px; padding: 3px 11px; }
+</style>
+</head>
+<body>
+<main id="fig" role="img" aria-label="Double well recovery. Paths from x0 = -1 are kept only when they end near +1 at T = 3. Observed paths spend more time in the wells than the Brownian reference conditioned on the same window. LEAP recovers the true drift b(x) = x - x^3, while cubic regression on the kept paths fits a biased drift."></main>
+<div class="controls" id="controls"></div>
+<script src="../js/fig.js"></script>
+<script src="../js/toy.js"></script>
+<script src="../data/double_well.js"></script>
+<script>
+(() => {
+  'use strict';
+  const { P, el, rich, setRich, stage, polyline, dot, axes, legend, loop, playButton, smooth } = Fig;
+  const DW = window.LEAP_DOUBLE_WELL;
+  const W = 1000, H = 545;
+  const host = document.getElementById('fig');
+  const st = stage(host, W, H, () => draw());
+  const svg = st.svg;
+  const D = DW.D, dt = DW.dt, NSTEP = Math.round(DW.T / dt), LO = DW.window[0], HI = DW.window[1];
+  const b = (x) => x - x * x * x;
+  const R = LEAPToy.rng(42);
+
+  // ---- shared captions
+  const cap1 = rich(svg, 16, 32, '', { class: 'cap cap-em' });
+  const cap2 = rich(svg, 16, 56, '', { class: 'cap' });
+  const views = { drift: el('g', {}, svg) };
+
+  // ---- view 1: selected trajectories, U(x), drift b(x)
+  const L1 = { x: 66, y: 100, w: 352, h: 340 };
+  const ax1 = axes(views.drift, { ...L1, xlim: [0, 3], ylim: [-2, 2], xticks: [0, 1, 2, 3], yticks: [-2, -1, 0, 1, 2],
+    xlabel: 'Time \\i{t}', ylabel: 'State \\i{x}', ylabelGap: 40 });
+  // time spent at each state, on the same state axis
+  const L1b = { x: 432, y: 100, w: 104, h: 340 };
+  const ax1b = axes(views.drift, { ...L1b, xlim: [0, 0.56], ylim: [-2, 2], xticks: [], yticks: [], ygrid: [-2, -1, 0, 1, 2], xlabel: 'Time at state' });
+  const U = (x) => (x * x - 1) ** 2 / 4;
+  const L2 = { x: 640, y: 92, w: 320, h: 92 };
+  const ax2 = axes(views.drift, { ...L2, xlim: [-1.5, 1.5], ylim: [-0.02, 0.36], xticks: [], yticks: [0, 0.2],
+    ylabel: '\\i{U}(\\i{x})', ylabelGap: 38 });
+  const L3 = { x: 640, y: 206, w: 320, h: 234 };
+  const ax3 = axes(views.drift, { ...L3, xlim: [-1.5, 1.5], ylim: [-2.5, 2.3], xticks: [-1, 0, 1], yticks: [-2, 0, 2],
+    xlabel: 'State \\i{x}', ylabel: '\\i{b}(\\i{x})', ylabelGap: 32 });
+  legend(views.drift, L3.x + 12, L3.y + L3.h - 62, [
+    ['dash', P.exact, 'True \\i{b}'], ['thick', P.leap, 'LEAP'], ['dotted', P.local, 'Cubic reg.']],
+  { vertical: true, lineHeight: 21 });
+  legend(views.drift, L1.x, 512, [['line', P.data, 'observed (kept)'], ['line', '#9aa1ab', 'not kept'], ['dash', P.ref, 'reference']],
+    { widths: [140, 90, 100], gap: 16 });
+  const ro = rich(views.drift, L1.x + L1.w, L1.y - 10, '', { 'text-anchor': 'end', class: 'tick' });
+  rich(views.drift, L1.x + 6, L1.y - 10, 'Selected trajectories', { class: 'tick' });
+  rich(views.drift, L2.x + L2.w / 2, L2.y + 6, 'Δ\\i{U} = 0.25', { 'text-anchor': 'middle', class: 'tick' });
+  rich(views.drift, ax2.sx(-1), ax2.sy(0) - 10, 'A', { 'text-anchor': 'middle', class: 'lbl', fill: P.A });
+  rich(views.drift, ax2.sx(1), ax2.sy(0) - 10, 'B', { 'text-anchor': 'middle', class: 'lbl', fill: P.B });
+
+  // LEAP and cubic fits (three seeds each), mean and sample SD
+  const xs = DW.xs;
+  const meanSd = (rows) => rows[0].map((_, i) => {
+    const v = rows.map((r) => r[i]), m = v.reduce((a, c) => a + c, 0) / v.length;
+    return [m, Math.sqrt(v.reduce((a, c) => a + (c - m) ** 2, 0) / (v.length - 1))];
+  });
+  const leap = meanSd(DW.leap);
+  const cubic = meanSd(DW.cubic_coefficients.map((c) => xs.map((x) => c[0] + c[1] * x + c[2] * x * x + c[3] * x * x * x)));
+
+  // live simulation of the selection
+  let kept = 0, simulated = 0;
+  const shown = [];          // recent kept and rejected paths for display
+  const path = new Float64Array(NSTEP + 1);
+  function simulateBatch(n) {
+    const sd = Math.sqrt(2 * D * dt);
+    for (let r = 0; r < n; r++) {
+      path[0] = DW.x0;
+      for (let k = 0; k < NSTEP; k++) path[k + 1] = path[k] + b(path[k]) * dt + sd * R.normal();
+      simulated++;
+      const ok = path[NSTEP] >= LO && path[NSTEP] <= HI;
+      if (ok) kept++;
+      if (ok || Math.random() < 0.02) {
+        shown.push({ ok, p: Float32Array.from(path.filter((_, k) => k % 3 === 0)) });
+        if (shown.length > 200) shown.splice(shown.findIndex((s) => !s.ok) >= 0 ? shown.findIndex((s) => !s.ok) : 0, 1);
+      }
+    }
+  }
+  let view = 'drift', t = 0;
+  function select(key) {
+    view = key; t = 0;
+    {
+      kept = 0; simulated = 0; shown.length = 0;
+      setRich(cap1, 'Trajectories start at \\i{x}_{0} = −1 and are kept when \\i{x}_{\\i{T}} ∈ [0.9, 1.1] at \\i{T} = 3.');
+      setRich(cap2, 'Observed paths linger in the wells; the Brownian reference does not. LEAP learns the drift from this difference.');
+    }
+    draw();
+  }
+
+  function band(ctx, sx, sy, xs, ms, color) {
+    ctx.save(); ctx.beginPath();
+    xs.forEach((x, i) => { const y = sy(ms[i][0] + ms[i][1]); i ? ctx.lineTo(sx(x), y) : ctx.moveTo(sx(x), y); });
+    for (let i = xs.length - 1; i >= 0; i--) ctx.lineTo(sx(xs[i]), sy(ms[i][0] - ms[i][1]));
+    ctx.closePath(); ctx.fillStyle = color; ctx.globalAlpha = 0.22; ctx.fill(); ctx.restore();
+  }
+  function curve(ctx, sx, sy, pts, style) {
+    const X = new Float64Array(pts.length), Y = new Float64Array(pts.length);
+    pts.forEach(([x, y], i) => { X[i] = sx(x); Y[i] = sy(y); });
+    polyline(ctx, X, Y, pts.length, style);
+  }
+  function clipTo(ctx, a) { ctx.save(); ctx.beginPath(); ctx.rect(a.x, a.y - 2, a.w, a.h + 4); ctx.clip(); }
+
+  function draw() {
+    const ctx = st.ctx;
+    st.clear();
+    if (view === 'drift') {
+      // window and start
+      ctx.fillStyle = 'rgba(178,106,168,0.16)';
+      ctx.fillRect(ax1.sx(2.92), ax1.sy(HI), ax1.sx(3) - ax1.sx(2.92) + 6, ax1.sy(LO) - ax1.sy(HI));
+      clipTo(ctx, L1);
+      const step = 3 * dt;
+      for (const s of shown) {
+        const n = s.p.length, X = new Float64Array(n), Y = new Float64Array(n);
+        for (let i = 0; i < n; i++) { X[i] = ax1.sx(i * step); Y[i] = ax1.sy(s.p[i]); }
+        polyline(ctx, X, Y, n, s.ok ? { color: P.data, width: 0.8, alpha: 0.09 } : { color: '#7d8590', width: 0.9, alpha: 0.55 });
+      }
+      ctx.restore();
+      // occupancy: observed (all 15,000 selected training paths) against the matched Brownian reference
+      const oc = DW.occupancy, ob = oc.x.map((x, i) => [oc.observed[i], x]), rf = oc.x.map((x, i) => [oc.reference[i], x]);
+      ctx.save(); ctx.beginPath(); ctx.moveTo(ax1b.sx(0), ax1b.sy(ob[0][1]));
+      ob.forEach(([d, x]) => ctx.lineTo(ax1b.sx(d), ax1b.sy(x)));
+      ctx.lineTo(ax1b.sx(0), ax1b.sy(ob[ob.length - 1][1])); ctx.closePath();
+      ctx.fillStyle = P.data; ctx.globalAlpha = 0.16; ctx.fill(); ctx.restore();
+      curve(ctx, ax1b.sx, ax1b.sy, ob, { color: P.data, width: 1.8 });
+      curve(ctx, ax1b.sx, ax1b.sy, rf, { color: P.ref, width: 1.6, dash: [5, 3.5] });
+      dot(ctx, ax1.sx(0), ax1.sy(-1), 5, P.A, '#fff', 1.2);
+      // U(x)
+      const ux = []; for (let i = 0; i <= 120; i++) { const x = -1.5 + 3 * i / 120; ux.push([x, U(x)]); }
+      ctx.save(); ctx.beginPath(); ux.forEach(([x, y], i) => i ? ctx.lineTo(ax2.sx(x), ax2.sy(y)) : ctx.moveTo(ax2.sx(x), ax2.sy(y)));
+      ctx.lineTo(ax2.sx(1.5), ax2.sy(0)); ctx.lineTo(ax2.sx(-1.5), ax2.sy(0)); ctx.closePath();
+      ctx.fillStyle = 'rgba(239,239,244,0.9)'; ctx.fill(); ctx.restore();
+      curve(ctx, ax2.sx, ax2.sy, ux, { color: '#4a4f5c', width: 1.6 });
+      dot(ctx, ax2.sx(-1), ax2.sy(0), 4.5, P.A); dot(ctx, ax2.sx(1), ax2.sy(0), 4.5, P.B);
+      // drift
+      clipTo(ctx, L3);
+      ctx.globalAlpha = 1;
+      band(ctx, ax3.sx, ax3.sy, xs, cubic, P.local);
+      curve(ctx, ax3.sx, ax3.sy, xs.map((x, i) => [x, cubic[i][0]]), { color: P.local, width: 1.7, dash: [1.5, 3] });
+      band(ctx, ax3.sx, ax3.sy, xs, leap, P.leap);
+      curve(ctx, ax3.sx, ax3.sy, xs.map((x, i) => [x, leap[i][0]]), { color: P.leap, width: 2.4 });
+      curve(ctx, ax3.sx, ax3.sy, xs.map((x) => [x, b(x)]), { color: P.exact, width: 1.4, dash: [5, 3] });
+      ctx.restore();
+      const frac = simulated ? kept / simulated : 0;
+      setRich(ro, 'kept ' + kept.toLocaleString() + ' / ' + simulated.toLocaleString() + ' (' + (100 * frac).toFixed(1) + '%)');
+    }
+  }
+
+  const clock = loop((dts) => {
+    t += dts;
+    if (view === 'drift' && t < 14) simulateBatch(240);
+    if (t > 22) select('drift');
+    draw();
+  });
+  playButton(document.getElementById('controls'), clock);
+  select('drift');
+  const t0 = Fig.reduced ? 12 : Fig.query('t', 0);
+  if (t0) { for (let f = 0; f < (Fig.reduced ? 150 : Math.min(t0, 14) * 60); f++) simulateBatch(240); t = t0; draw(); }
+})();
+</script>
+</body>
+</html>

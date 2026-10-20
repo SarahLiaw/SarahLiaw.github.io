@@ -25,3 +25,10 @@ exclude:
   - LICENSE
   - README.md
   - node_modules
+
+# unlisted page: keep it out of the sitemap
+defaults:
+  - scope:
+      path: "action-learning"
+    values:
+      sitemap: false
