@@ -210,7 +210,7 @@
     return { refresh: set };
   }
 
-  // Test hook: ?t=<seconds>&tab=<index> jumps to a moment (ignored where query strings are unavailable).
+  // ?t=<seconds>&tab=<index> jumps to a moment, for checking frames.
   const query = (k, d) => { try { const v = new URLSearchParams(location.search).get(k); return v === null ? d : +v; } catch (e) { return d; } };
 
   window.Fig = { query, P, NS, el, rich, setRich, parse, stage, polyline, dot, axes, legend, loop, playButton, clamp, smooth, lerp, reduced };
