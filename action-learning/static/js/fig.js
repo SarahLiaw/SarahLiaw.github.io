@@ -73,19 +73,20 @@
     return t;
   }
 
-  // Layered stage: a DPR-aware canvas for marks, an SVG for text, both in one logical W x H frame.
+  // Layered stage in one logical W x H frame: a vector background, a DPR-aware canvas for marks, an SVG for text.
   function stage(container, W, H, onresize) {
     container.classList.add('fig');
     container.style.setProperty('--aspect', W + ' / ' + H);
     const canvas = document.createElement('canvas');
+    const bg = el('svg', { class: 'layer', viewBox: `0 0 ${W} ${H}`, 'aria-hidden': 'true' });
     const svg = el('svg', { class: 'layer', viewBox: `0 0 ${W} ${H}`, 'aria-hidden': 'true' });
-    container.append(canvas, svg);
+    container.append(bg, canvas, svg);
     const ctx = canvas.getContext('2d');
-    const st = { canvas, ctx, svg, W, H, scale: 1 };
+    const st = { canvas, ctx, bg, svg, W, H, scale: 1 };
     let ready = false;
     function resize() {
       const r = container.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+      const dpr = Math.min(window.devicePixelRatio || 1, 3);
       canvas.width = Math.max(1, Math.round(r.width * dpr));
       canvas.height = Math.max(1, Math.round(r.height * dpr));
       st.scale = canvas.width / W;

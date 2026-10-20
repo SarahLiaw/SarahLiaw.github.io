@@ -5,7 +5,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LEAP Downstream Tasks</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans:400,500,700|Noto+Sans|Castoro">
 <link rel="stylesheet" href="../css/fig.css">
 </head>
 <body>
@@ -14,6 +14,8 @@
 <script src="../js/fig.js"></script>
 <script src="../js/toy.js"></script>
 <script src="../data/toy.js"></script>
+<script src="../data/landscape.js"></script>
+<script src="../js/landscape.js"></script>
 <script>
 (() => {
   'use strict';
@@ -26,9 +28,6 @@
   const [A, B] = T.ends();
   const N = T.params.N, d = T.params.d;
   const ub = ground.bump_px / ground.L, gb = T.ground_h(ub);
-  const img = new Image();
-  img.src = '../img/landscape.png';
-  img.onload = () => draw();
 
   // 2 x 2 panels in the order of Fig. 3
   const PW = 500, PH = 272, k = 470 / ground.L;
@@ -78,16 +77,12 @@
     for (let j = 0; j < n; j++) { xs[j] = X(i, p[2 * j]); ys[j] = Y(i, p[2 * j + 1]); }
     return [xs, ys];
   }
-  function landscape(i) {
-    const { x0, y0 } = panel(i);
-    if (img.complete && img.naturalWidth) st.ctx.drawImage(img, x0 + 15, y0 + 52, img.naturalWidth * k, img.naturalHeight * k);
-  }
+  for (let i = 0; i < 4; i++) Landscape.draw(st.bg, k, panel(i).x0 + 15, panel(i).y0 + 52);
   function ends(i) { dot(st.ctx, X(i, A[0]), Y(i, A[1]), 5.2, P.A, '#fff', 1.2); dot(st.ctx, X(i, B[0]), Y(i, B[1]), 5.2, P.B, '#fff', 1.2); }
 
   function draw() {
     const ctx = st.ctx;
     st.clear();
-    for (let i = 0; i < 4; i++) landscape(i);
     { const q = xy(0, S.rep.path); polyline(ctx, q[0], q[1], q[0].length, { color: P.exact, width: 2.2, halo: 'rgba(255,255,255,.85)' }); }
     {
       ctx.save(); ctx.beginPath();

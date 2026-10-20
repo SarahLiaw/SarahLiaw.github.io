@@ -36,8 +36,14 @@ img { max-width: 100%; height: auto; display: block; }
 .narrow { max-width: 768px; margin: 0 auto; }
 .section { padding-block: 2.25rem; }
 
+/* top navigation */
+.navbar { display: flex; justify-content: center; flex-wrap: wrap; gap: .3rem 2.6rem; padding: 1.15rem 0 .25rem;
+  font-family: var(--body-font); font-size: 1.1rem; }
+.navbar a { color: #4a4a4a; }
+.navbar a:hover { color: var(--link); text-decoration: none; }
+
 /* hero */
-.hero { padding-block: 3rem 1.5rem; text-align: center; }
+.hero { padding-block: 2.25rem 1.5rem; text-align: center; }
 .publication-title {
   font-family: var(--title-font); font-size: 3rem; font-weight: 600; line-height: 1.125;
   color: var(--strong); margin: 0 0 1.5rem; text-wrap: balance;
@@ -76,7 +82,6 @@ h4.subtitle { font-family: var(--body-font); font-size: 1.15rem; font-weight: 60
 .content .justified { text-align: justify; hyphens: auto; }
 .content ul { margin: 0 0 1em; padding-left: 1.25em; }
 .content li { margin: 0 0 .55em; }
-.takeaway { color: var(--strong); font-weight: 600; }
 .eq { overflow-x: auto; overflow-y: hidden; margin: .75rem 0 1.1rem; }
 mjx-container[display="true"] { margin: .4em 0 !important; }
 
@@ -100,6 +105,7 @@ footer {
 
 @media (max-width: 768px) {
   .publication-title { font-size: 2.1rem; }
+  .navbar { gap: .3rem 1.4rem; font-size: 1rem; }
   .publication-authors, .tldr { font-size: 1.1rem; }
   .figure-pair { grid-template-columns: 1fr; }
   .content .justified { text-align: left; }

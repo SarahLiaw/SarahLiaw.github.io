@@ -5,16 +5,12 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Alanine Action Reuse</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans:400,500,700|Noto+Sans|Castoro">
 <link rel="stylesheet" href="../css/fig.css">
-<style>
-  .tabs { left: 1.6%; top: 2.2%; }
-  .tabs button { font-size: clamp(10px, 1.45vw, 15px); border-radius: 999px; padding: 3px 11px; }
-</style>
 </head>
 <body>
 <main id="fig" role="img" aria-label="Reuse of a fixed molecular action on the alanine dipeptide Ramachandran map: completion from sparse observations, a basin preference whose weight changes the path, and an angular bound composed with the preference, with the molecule's conformation following the selected path."></main>
-<div class="tabs" id="tabs" role="tablist"></div>
+<div class="seg" id="tabs" role="tablist"></div>
 <div class="controls" id="controls"></div>
 <script src="../js/fig.js"></script>
 <script src="../data/alanine.js"></script>
@@ -57,15 +53,15 @@
   const numG = el('g', {}, svg);
 
   const TABS = [
-    { key: 'a', name: 'a  Completion',
+    { key: 'a', name: 'Completion',
       c1: 'Completion from endpoints and three interior observations.',
       c2: 'LEAP is trained only on complete trajectories, so the observed states are specified only at inference.' },
-    { key: 'b', name: 'b  Preference weight',
+    { key: 'b', name: 'Preference Weight',
       c1: 'Increasing the basin preference raises \\i{M} from 0.23 to 0.81 for the shown path.',
       c2: 'Inference objective \\i{J}_{\\i{λ}}(\\i{Φ}) = \\i{S}_{\\i{θ}}(\\i{Φ}) − \\i{λM}(\\i{Φ}), with the same learned 600 K action.' },
-    { key: 'c', name: 'c  Bound + preference',
+    { key: 'c', name: 'Bound and Preference',
       c1: 'Adding |\\i{ϕ}| ≤ 150° changes the route while preserving the terminal condition.',
-      c2: 'The preference-only path enters the excluded angular region, while the constrained path stays within the bound.' },
+      c2: 'The preference only path enters the excluded angular region, while the constrained path stays within the bound.' },
   ];
   let tab = 0, lam = '0', which = 'bound_preference_20', t = 0, cycle = 0;
   const tabsEl = document.getElementById('tabs');
@@ -95,7 +91,7 @@
         rich(numG, RP.x + 120, RP.y + 92 + 40 * i, b, { class: 'sub' });
       });
     } else if (key === 'b') {
-      rich(keyG, M.x, M.y + M.s + 62, 'Dots mark saved frames (0.1 ps); the circle is the preferred region.', { class: 'tick' });
+      rich(keyG, M.x, M.y + M.s + 62, 'Dots mark saved frames every 0.1 ps. The circle is the preferred region.', { class: 'tick' });
     } else {
       legend(keyG, M.x, M.y + M.s + 62, [['dash', F7.white, 'Preference only'], ['line', F7.leap, 'Both']], { widths: [150, 60] });
     }
@@ -157,7 +153,10 @@
     const fr = MOL.paths[key].frames, i = Math.min(Math.floor(f), fr.length - 2), u = f - i;
     return fr[i].map((a, j) => a.map((v, c) => v + (fr[i + 1][j][c] - v) * u));
   }
-  function drawMolecule(ctx, X, yaw, hilite) {
+  // fixed view: a rotation of 15 degrees from the principal axes that minimizes overlaps along every shown path
+  const VIEW = [[0.969558, 0.103395, 0.221962], [-0.116128, 0.992211, 0.045066], [-0.215574, -0.06947, 0.974013]];
+  function drawMolecule(ctx, X0, yaw, hilite) {
+    const X = X0.map((a) => VIEW.map((r) => r[0] * a[0] + r[1] * a[1] + r[2] * a[2]));
     const cx = RP.x + RP.w / 2, cy = RP.y + RP.h / 2 + 8, sc = 40;
     const cy_ = Math.cos(yaw), sy_ = Math.sin(yaw), pitch = 0.3, cp = Math.cos(pitch), spp = Math.sin(pitch);
     const proj = X.map(([x, y, z]) => {
@@ -187,12 +186,25 @@
         ctx.lineWidth = 0.6; ctx.strokeStyle = 'rgba(40,40,50,.45)'; ctx.stroke();
       }
     }
-    // dihedral labels at the rotatable bonds
+    // dihedral labels beside their bonds, on the side with the most room
+    const placed = [];
     for (const [a, b, s] of [[6, 8, 'ϕ'], [8, 14, 'ψ']]) {
-      const x = (proj[a][0] + proj[b][0]) / 2, y = (proj[a][1] + proj[b][1]) / 2;
+      const mx_ = (proj[a][0] + proj[b][0]) / 2, my_ = (proj[a][1] + proj[b][1]) / 2;
+      let nx = proj[a][1] - proj[b][1], ny = proj[b][0] - proj[a][0];
+      const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
+      let best = null, room = -Infinity;
+      for (const off of [16, 20, 24]) for (const sg of [1, -1]) {
+        const x = mx_ + sg * nx * off, y = my_ + sg * ny * off;
+        let r = Infinity;
+        proj.forEach((p, i) => { r = Math.min(r, Math.hypot(p[0] - x, p[1] - y) - RAD[MOL.elements[i]] * sc * 0.62 * p[3]); });
+        placed.forEach(([px_, py_]) => { r = Math.min(r, Math.hypot(px_ - x, py_ - y) - 8); });
+        if (r - 0.15 * off > room) { room = r - 0.15 * off; best = [x, y]; }
+      }
+      placed.push(best);
       ctx.save(); ctx.font = 'italic 17px "Google Sans", "Noto Sans", sans-serif'; ctx.fillStyle = P.ink2;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.lineWidth = 4; ctx.strokeStyle = '#ffffff'; ctx.lineJoin = 'round';
-      ctx.strokeText(s, x + 9, y - 9); ctx.fillText(s, x + 9, y - 9); ctx.restore();
+      ctx.strokeText(s, best[0], best[1]); ctx.fillText(s, best[0], best[1]); ctx.restore();
     }
   }
   function shade(hex) {
@@ -251,7 +263,7 @@
         const ff = prog * (fr.frames.length - 1);
         drawMolecule(ctx, molFrame(molKey, ff), 0.35 * Math.sin(t * 0.35), color === F7.white ? '#9aa0aa' : color);
         const i = Math.min(Math.round(ff), fr.angles.length - 1);
-        setRich(molInfo, '\\i{t} = ' + (prog * (main.length - 1) * AL.dt_ps).toFixed(2) + ' ps     \\i{ϕ} = ' + fr.angles[i][0].toFixed(0) + '°     \\i{ψ} = ' + fr.angles[i][1].toFixed(0) + '°');
+        setRich(molInfo, '\\i{t} = ' + (prog * (main.length - 1) * AL.dt_ps).toFixed(2) + ' ps     \\i{ϕ} = ' + fr.angles[i][0].toFixed(0).replace('-', '−') + '°     \\i{ψ} = ' + fr.angles[i][1].toFixed(0).replace('-', '−') + '°');
       }
     }
   }

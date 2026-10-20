@@ -5,7 +5,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Orbital Correction</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans:400,500,700|Noto+Sans|Castoro">
 <link rel="stylesheet" href="../css/fig.css">
 <style>
   /* the scatter's axis reaches the bottom-right corner, so the control sits top-right here */
@@ -29,11 +29,10 @@
   const svg = st.svg;
 
   rich(svg, 16, 32, 'LEAP-Global follows the exact log cosh \\i{A} dependence across held out trajectories.', { class: 'cap cap-em' });
-  rich(svg, 16, 56, 'A hidden solar-mass change, fixed for the whole path, makes the correction nonadditive across transitions.', { class: 'cap' });
 
   // Left: inner planets of one held-out path (heliocentric, Earth's orbital plane).
   const SS = { cx: 200, cy: 300, s: 108 };       // pixels per AU
-  rich(svg, 22, 104, 'One held-out path of the 31-body system (heavier Sun)', { class: 'sub' });
+  rich(svg, 22, 104, 'One held out path of the 31 body system (heavier Sun)', { class: 'sub' });
   const dayText = rich(svg, 22, 128, '', { class: 'tick' });
   const names = { mercury: 'Mercury', venus: 'Venus', earth: 'Earth', mars: 'Mars' };
   for (const k in names) {
