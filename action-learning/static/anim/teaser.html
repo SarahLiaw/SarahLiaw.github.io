@@ -125,8 +125,8 @@
       aRef = smooth((t - 5.6) / 0.6);
       if (t < 4.1) caption('We observe trajectories from simulation, which climb over the barrier from A to B.',
         'LEAP learns only from these samples.');
-      else caption('The reference is Brownian motion around randomly shifted copies of the average path.',
-        'It ignores the drift and the barrier, so many of its paths cut through it while others pass far above.');
+      else caption('The reference is Brownian motion spread around the average observed path.',
+        'It ignores the drift and the barrier, so many paths cut through it.');
     } else if (s === 1) {
       const u = t - STAGES[1].t0, per = 1.3, bi = Math.floor(u / per) % batches.length, ph = (u % per) / per;
       const a = Math.min(smooth(ph / 0.12), 1 - smooth((ph - 0.88) / 0.12));
@@ -134,8 +134,8 @@
       bt.refs.forEach((xy) => polyline(ctx, xy[0], xy[1], xy[0].length, { color: P.ref, width: 1.4, dash: [5, 3.5], alpha: 0.95 * a }));
       polyline(ctx, bt.obs[0], bt.obs[1], bt.obs[0].length, { color: P.data, width: 2.4, alpha: a, halo: 'rgba(255,255,255,.9)' });
       aObs = 1; aRef = 1;
-      caption('LEAP learns the path log ratio \\i{G}_{\\i{θ}}(\\i{Φ}; \\i{c}) of observed to reference paths.',
-        'Each comparison scores one observed path against \\i{K} reference paths with the same endpoints.');
+      caption('LEAP learns \\i{G}_{\\i{θ}}(\\i{Φ}; \\i{c}), what the reference gets wrong, on complete paths.',
+        'Observed and reference paths with the same endpoints are compared as wholes, never step by step.');
     } else {
       const u = t - STAGES[2].t0;
       if (u > 0.8 && u < 5) {

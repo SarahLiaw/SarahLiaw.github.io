@@ -90,14 +90,14 @@
 <section class="section" id="method" data-nav="method">
   <div class="container content">
     <h3 class="title">Learning Action Functionals from Trajectory Samples</h3>
-    <h4 class="subtitle">Learning the Action on Path Space</h4>
-    <p class="justified">For a discretized trajectory \(\Phi = (x_0, \dots, x_N)\) and conditioning variables \(c\), such as endpoints, terminal regions, horizon or diffusion level, LEAP targets the stochastic action \(S^*(\Phi;c) = -\log p_{\mathrm{data}}(\Phi\mid c) + \alpha(c)\), which it learns from trajectory samples alone, without the underlying drift, potential or simulator likelihood, by writing the unknown action against an evaluable reference path measure,</p>
-    <div class="eq">\[ S^*(\Phi;c) \;=\; \underbrace{-\log p_{\mathrm{ref}}(\Phi\mid c)}_{\text{reference action}} \;-\; \underbrace{\log \frac{p_{\mathrm{data}}(\Phi\mid c)}{p_{\mathrm{ref}}(\Phi\mid c)}}_{\text{path log density ratio } G^*(\Phi;c)} \;+\; \alpha(c), \]</div>
-    <p class="justified">so that learning the action amounts to learning the path log density ratio \(G^*\), a quantity defined on whole trajectories. LEAP estimates \(G^*\) with a setwise comparison objective that scores each observed trajectory against \(K\) reference trajectories of the same context, and every population minimizer of this objective equals \(G^* + a(c)\) for every \(K \ge 1\), so the context dependent term cancels from each comparison and training never needs samples from the learned action.</p>
-    <h4 class="subtitle">Learning from Complete Paths</h4>
-    <p class="justified">Comparing complete trajectories rather than transitions is what lets LEAP recover the underlying dynamics from the data that are typically available. When trajectories are selected by an event \(E\), such as reaching a target region, every one step conditional of the selected process changes, so a model of transitions learns the selection rather than the dynamics, whereas the complete path log ratio changes only by a constant,</p>
-    <div class="eq">\[ \log \frac{p_{\mathrm{data}}(\Phi \mid \Phi \in E)}{p_{\mathrm{ref}}(\Phi \mid \Phi \in E)} \;=\; \log \frac{p_{\mathrm{data}}(\Phi)}{p_{\mathrm{ref}}(\Phi)} \;+\; \underbrace{\log \frac{P_{\mathrm{ref}}(E)}{P_{\mathrm{data}}(E)}}_{\text{same for every path}}, \]</div>
-    <p class="justified">so a reference conditioned on the same event leaves the learned log ratio pointing at the original dynamics. For Markov dynamics that share a diffusion coefficient with the reference, the log ratio then takes an exact Girsanov form whose learned field is the drift difference, and when information is shared across the whole trajectory, such as a latent variable fixed along the path, LEAP-Global learns the log ratio as a function of the complete path and captures interactions across transitions that local models miss.</p>
+    <h4 class="subtitle">Action Learning</h4>
+    <p class="justified">In stochastic dynamics, the action \(S(\Phi;c)\) of a trajectory \(\Phi = (x_0, \dots, x_N)\) is the path functional whose minimizers are the most probable paths, and for a diffusion it is the Onsager–Machlup cost of how far each step departs from the drift. Action learning asks for this functional when the dynamics are unknown and only trajectory samples are available for each context \(c\), such as endpoints, terminal regions or horizons. LEAP writes the unknown action against a reference process whose action we can evaluate, such as Brownian motion, and learns only what the reference gets wrong, as a function of the complete path,</p>
+    <div class="eq">\[ S_\theta(\Phi;c) \;=\; \underbrace{S_{\mathrm{ref}}(\Phi;c)}_{\text{evaluable reference action}} \;-\; \underbrace{G_\theta(\Phi;c)}_{\text{learned from complete trajectories}}. \]</div>
+    <p class="justified">Training compares each observed trajectory with reference trajectories of the same context, and the comparison is minimized exactly when \(G_\theta\) equals the path log ratio between data and reference up to a constant, so the learned \(S_\theta\) is the true action up to a constant per context while the drift, the potential and the simulator are never evaluated.</p>
+    <h4 class="subtitle">Trajectories, Not Transitions</h4>
+    <p class="justified">Learning on complete paths changes what can be recovered from realistic data. Trajectories are often selected by an event \(E\), such as reaching a target region or completing a task, and selection rewrites every one step conditional, so models of transitions learn the selection instead of the dynamics, whereas the complete path log ratio only shifts by a constant,</p>
+    <div class="eq">\[ \log \frac{p_{\mathrm{data}}(\Phi \mid \Phi \in E)}{p_{\mathrm{ref}}(\Phi \mid \Phi \in E)} \;=\; \log \frac{p_{\mathrm{data}}(\Phi)}{p_{\mathrm{ref}}(\Phi)} \;+\; \underbrace{\log \frac{P_{\mathrm{ref}}(E)}{P_{\mathrm{data}}(E)}}_{\text{same for every path}}. \]</div>
+    <p class="justified">Comparing selected trajectories with a reference conditioned on the same event therefore recovers the original dynamics, which for Markov dynamics sharing the reference's diffusion appear as a drift field through the Girsanov form. When information persists along the whole trajectory, such as a latent variable fixed for the entire path, LEAP-Global learns the path functional directly and captures interactions across transitions that local models miss.</p>
   </div>
 </section>
 
@@ -159,7 +159,13 @@
     <h3 class="title">Conclusion</h3>
     <p class="justified">LEAP treats the stochastic action as a reusable learning target for trajectory data, and learning an objective on path space gives a common interface between trajectory data and diverse downstream inference problems. Looking forward, we hope action learning encourages a broader view for trajectory modeling, in science as well as robotics and other sequential domains, by shifting the focus to learning reusable objectives over complete paths.</p>
     <h4 class="subtitle">Limitations</h4>
-    <p class="justified">LEAP requires overlap between the reference and trajectory distributions, and its Girsanov form is exact for Gaussian Markov processes with shared diffusion, while state dependent diffusion requires more likelihood ratio terms.</p>
+    <ul>
+      <li>LEAP requires overlap between the reference and the trajectory distribution, and poor overlap increases finite sample error.</li>
+      <li>The action is identified up to a constant within each context, so it ranks and optimizes paths within a context, not across contexts.</li>
+      <li>The log ratio is learned where trajectories go, so inference far from the data relies on extrapolation.</li>
+      <li>The Girsanov form is exact under shared diffusion, while state dependent diffusion needs more likelihood ratio terms.</li>
+      <li>In reduced coordinates, memory and state dependent friction make the learned action an effective one.</li>
+    </ul>
   </div>
 </section>
 
