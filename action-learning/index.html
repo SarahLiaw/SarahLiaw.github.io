@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="robots" content="noindex, nofollow">
+<meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Action Learning for Scientific Simulations</title>
   <meta name="description" content="LEAP learns the stochastic action of a system, an objective on complete trajectories, directly from trajectory samples, and reuses it for path ranking, representative path inference, mechanism tilting, constraints and sampling.">
@@ -68,8 +68,8 @@
   <div class="container content">
     <h3 class="title">From Trajectory Samples to Path Inference</h3>
     <p class="justified">Understanding how systems move between states requires reasoning about the trajectories that connect them. In molecular dynamics, two conformations may be connected by several transition routes that visit different intermediate configurations; in robotics, agents act through sequences of decisions. In these settings, the object of interest is often the trajectory itself: which paths realize a transition, which mechanisms are plausible and which paths remain likely under perturbations or constraints.</p>
-    <p class="justified">Trajectory-level questions require objectives on complete paths. When the dynamics are known, stochastic action functionals such as the Onsager–Machlup functional and the Freidlin–Wentzell rate functional provide one. The action is a physical quantity: it assigns a scalar objective to each complete trajectory, with lower action corresponding to higher probability, and for a diffusion it adds up how far each step departs from the drift.</p>
-    <p class="justified">In many applications, however, we do not know the action. We instead observe trajectories, like molecular simulation traces, policy rollouts or logs of a stochastic process, and learned methods often predict local dynamics or generate trajectories. We call the task of recovering an evaluable action from trajectory samples <b>action learning</b>, and <b>treat the action itself as the learning target, rather than a local predictor or trajectory generator</b>.</p>
+    <p class="justified">Trajectory-level questions require objectives on complete paths. When the dynamics are known, stochastic action functionals such as the Onsager–Machlup functional and the Freidlin–Wentzell rate functional provide one. The action is a physical quantity: it assigns a scalar objective to each complete trajectory, and for a diffusion it adds up how far each step departs from the drift.</p>
+    <p class="justified">In many applications, however, we do not know the action. We instead observe trajectories, like molecular simulation traces, robot trajectories, policy rollouts or logs of a stochastic process, and learned methods often fit a one-step predictor or a trajectory generator. Each answers the question it was trained for; asking which route is typical, or what changes under a new preference, then needs a new model or a new search. We call the task of recovering an evaluable action from trajectory samples <b>action learning</b>, and <b>treat the action itself as the learning target, rather than a local predictor or trajectory generator</b>: it is the object those later questions are asked of.</p>
     <figure>
       <div class="figure-pair">
         <div><img src="static/figures/fig1a_local.png" alt="Local dynamics learning: paths assembled from one-step transitions between basins A and B." width="1400" height="481"><p class="sub"><b>(a) Local dynamics learning.</b> One-step transition laws induce a likelihood over complete trajectories.</p></div>
@@ -85,7 +85,7 @@
     <h3 class="title">Learning Action Functionals from Trajectory Samples</h3>
     <p class="justified">LEAP requires trajectory samples for each context \(c\), such as endpoints, terminal regions, horizon or diffusion level, but not the underlying drift, potential or simulator likelihood. It anchors the unknown action to a tractable reference process and learns the remaining correction from complete trajectories:</p>
     <div class="eq">\[ S_\theta(\Phi;c) \;=\; \underbrace{-\log p_{\mathrm{ref}}(\Phi\mid c)}_{\text{reference action}} \;-\; \underbrace{\widetilde G_\theta(\Phi;c)}_{\text{learned correction}} \]</div>
-    <p class="justified">The correction \(G_\theta\) estimates the path log density ratio of data to reference by comparing each observed trajectory with \(K\) reference trajectories of the same context, and \(\widetilde G_\theta\) centers it under the reference. The reference does not have to follow the physics: in the double well it is Brownian motion with the same diffusion and terminal condition. In structured settings, the correction recovers changes in the underlying dynamics; more generally, it can capture nonadditive interactions across transitions.</p>
+    <p class="justified">The correction \(G_\theta\) estimates the path log density ratio of data to reference by comparing each observed trajectory with \(K\) reference trajectories of the same context, and \(\widetilde G_\theta\) centers it under the reference. The reference does not have to follow the physics: in the double well it is Brownian motion with the same diffusion and terminal condition. Training only compares observed paths with reference samples, so it never has to sample from the action being learned. In structured settings, the correction recovers changes in the underlying dynamics; more generally, it can capture nonadditive interactions across transitions.</p>
     <ul>
       <li><b>The comparison objective recovers the action</b> up to a context constant, for every \(K \ge 1\).</li>
       <li><b>The structured correction recovers drift differences</b> at the states and times visited by the process.</li>
@@ -104,7 +104,7 @@
       </div>
       <figcaption>Fig. 3, computed live with one action on the toy landscape. Dashed curves show the path before the preference or penalty.</figcaption>
     </figure>
-    <p class="justified"><b>Beyond scientific simulations.</b> The approach applies broadly to trajectories from dynamical systems, including molecular simulations, stochastic physical systems and logged sequential processes. Such methods may help analyze and steer dynamical systems in science, robotics, planning and other sequential domains.</p>
+    <p class="justified"><b>Beyond scientific simulation.</b> Nothing in LEAP is specific to physics: it needs trajectory samples for each context and a reference whose path density can be evaluated, so the same recipe applies to logged sequential processes such as robot trajectories or agent rollouts. Such methods may help analyze and steer dynamical systems in science, robotics, planning and other sequential domains.</p>
   </div>
 </section>
 

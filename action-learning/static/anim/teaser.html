@@ -146,7 +146,7 @@
       ro.setAttribute('opacity', smooth((u - 0.6) / 0.5));
       setRich(ro, 'action of the blue path: ' + repS.toFixed(0) + (u > 1 ? '   (start: ' + repStartS.toFixed(0) + ')' : ''));
       caption('The action \\i{S}_{\\i{θ}} = reference action − learned correction scores complete paths.',
-        'Lower action means a more probable path. Minimizing it lifts a reference path over the barrier.');
+        'Minimizing it lifts a reference path over the barrier, onto the route the dynamics take.');
     }
     tag(tagObs, X(0.36), Y(0.17), aObs * (s < 2 ? 1 : 0));
     tag(tagRef, X(0.6), Y(-0.05), aRef * (s < 2 ? 1 : 0));

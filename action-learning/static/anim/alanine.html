@@ -159,7 +159,7 @@
   }
   function drawMolecule(ctx, X, yaw, hilite) {
     const cx = RP.x + RP.w / 2, cy = RP.y + RP.h / 2 + 8, sc = 40;
-    const cy_ = Math.cos(yaw), sy_ = Math.sin(yaw), pitch = 0.42, cp = Math.cos(pitch), spp = Math.sin(pitch);
+    const cy_ = Math.cos(yaw), sy_ = Math.sin(yaw), pitch = 0.3, cp = Math.cos(pitch), spp = Math.sin(pitch);
     const proj = X.map(([x, y, z]) => {
       const x1 = cy_ * x + sy_ * z, z1 = -sy_ * x + cy_ * z;
       const y2 = cp * y - spp * z1, z2 = spp * y + cp * z1;
@@ -191,7 +191,8 @@
     for (const [a, b, s] of [[6, 8, 'ϕ'], [8, 14, 'ψ']]) {
       const x = (proj[a][0] + proj[b][0]) / 2, y = (proj[a][1] + proj[b][1]) / 2;
       ctx.save(); ctx.font = 'italic 17px "Google Sans", "Noto Sans", sans-serif'; ctx.fillStyle = P.ink2;
-      ctx.fillText(s, x + 9, y - 9); ctx.restore();
+      ctx.lineWidth = 4; ctx.strokeStyle = '#ffffff'; ctx.lineJoin = 'round';
+      ctx.strokeText(s, x + 9, y - 9); ctx.fillText(s, x + 9, y - 9); ctx.restore();
     }
   }
   function shade(hex) {
@@ -248,7 +249,7 @@
       if (molKey) {
         const fr = MOL.paths[molKey];
         const ff = prog * (fr.frames.length - 1);
-        drawMolecule(ctx, molFrame(molKey, ff), 0.9 + 0.22 * Math.sin(t * 0.35), color === F7.white ? '#9aa0aa' : color);
+        drawMolecule(ctx, molFrame(molKey, ff), 0.35 * Math.sin(t * 0.35), color === F7.white ? '#9aa0aa' : color);
         const i = Math.min(Math.round(ff), fr.angles.length - 1);
         setRich(molInfo, '\\i{t} = ' + (prog * (main.length - 1) * AL.dt_ps).toFixed(2) + ' ps     \\i{ϕ} = ' + fr.angles[i][0].toFixed(0) + '°     \\i{ψ} = ' + fr.angles[i][1].toFixed(0) + '°');
       }
