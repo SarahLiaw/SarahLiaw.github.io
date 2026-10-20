@@ -71,7 +71,7 @@
   const S = {
     rep: { path: arc(), opt: {}, t: 0 },
     tilt: { path: Float64Array.from(base), opt: { M, lM: 0 }, t: 0 },
-    con: { path: arc(), opt: { C, lC: CFG.lC }, t: 0 },
+    con: { path: Float64Array.from(base), opt: { C, lC: 0 }, t: 0 },
     mh: { path: Float64Array.from(base), samples: [], since: 0, t: 0 },
   };
 
@@ -121,8 +121,10 @@
     S.con.t += dt;
     if (S.con.moved) replan(40);
     else {
-      if (S.con.t > 6) { S.con.t = 0; S.con.path = arc(); S.con.opt = { C, lC: CFG.lC }; }
-      if (S.con.t > 0.6) T.descend(S.con.path, Math.round(2 + 20 * smooth((S.con.t - 0.6) / 2)), S.con.opt);
+      // warm start from the representative path and ramp the penalty, as for the tilt
+      if (S.con.t > 7) { S.con.t = 0; S.con.path = Float64Array.from(base); S.con.opt = { C, lC: 0 }; }
+      S.con.opt.lC = CFG.lC * smooth(Math.min(Math.max(S.con.t - 0.6, 0), 3) / 3);
+      T.descend(S.con.path, 30, S.con.opt);
     }
     // sampling: Metropolis-Hastings with reference-bridge proposals
     const m = S.mh;
@@ -148,7 +150,7 @@
     const h = (ground.y_ref - ground.crop_top - (y - panel(2).y0 - 52) / k) / ground.L;
     C.c[0] = u; C.c[1] = Math.min(Math.max(h, T.ground_h(u)), T.ground_h(u) + 0.3);
     if (!S.con.moved) { S.con.moved = true; S.con.opt = { C, lC: CFG.lC }; hint.setAttribute('opacity', 0); }
-    S.con.alt = arc(); S.con.altOpt = { C, lC: CFG.lC };
+    S.con.alt = Float64Array.from(base); S.con.altOpt = { C, lC: CFG.lC };
     if (!clock.playing) { for (let i = 0; i < 50; i++) replan(50); draw(); }
   }
   let dragging = false;
@@ -171,6 +173,7 @@
   playButton(document.getElementById('controls'), clock);
   // reduced motion: show each panel's settled state without replaying the animation
   function settle() {
+    S.con.opt.lC = CFG.lC;
     for (let i = 0; i < 100; i++) { T.descend(S.rep.path, 50, S.rep.opt); T.descend(S.con.path, 50, S.con.opt); }
     S.tilt.opt.lM = CFG.lMax; S.tilt.t = 6.5;
     for (let i = 0; i < 200; i++) T.descend(S.tilt.path, 30, S.tilt.opt);

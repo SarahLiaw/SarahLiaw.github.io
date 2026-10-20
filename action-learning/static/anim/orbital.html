@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Orbital Correction</title>
+<title>Orbital Log Ratio</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans:400,500,700|Noto+Sans|Castoro">
 <link rel="stylesheet" href="../css/fig.css">
 <style>
@@ -14,7 +14,7 @@
 </style>
 </head>
 <body>
-<main id="fig" role="img" aria-label="Recovery of the nonadditive orbital correction. Left: one held-out 31-body path over 32 days. Right: learned versus exact corrections for all held-out paths; LEAP-Global follows the exact log cosh A curve while LEAP-Local stays flat."></main>
+<main id="fig" role="img" aria-label="Recovery of the nonadditive orbital path log ratio. Left: one held-out 31-body path over 32 days. Right: learned versus exact path log ratios for all held-out paths; LEAP-Global follows the exact log cosh A curve while LEAP-Local stays flat."></main>
 <div class="controls" id="controls"></div>
 <script src="../js/fig.js"></script>
 <script src="../data/orbital.js"></script>
@@ -40,10 +40,10 @@
     rich(svg, SS.cx + low[0] * SS.s, SS.cy - low[1] * SS.s + 15, names[k], { class: 'tick', 'text-anchor': 'middle', fill: '#8a919c' });
   }
 
-  // Right: Fig. 6, correction against the path summary A for all 384 held-out candidates.
+  // Right: Fig. 6, path log ratio against the path summary A for all 384 held-out candidates.
   const C = { x: 490, y: 96, w: 480, h: 372 };
   const axC = axes(svg, { ...C, xlim: [-7.6, 6.6], ylim: [-0.4, 7.4], xticks: [-6, -3, 0, 3, 6], yticks: [0, 2, 4, 6],
-    xlabel: 'Path summary \\i{A} = Σ\\i{d}_{\\i{k}}', ylabel: 'Correction (nats)', ylabelGap: 40 });
+    xlabel: 'Path summary \\i{A} = Σ\\i{d}_{\\i{k}}', ylabel: 'Path log ratio (nats)', ylabelGap: 40 });
   legend(svg, axC.sx(-2.3), C.y + 20, [['dash', P.exact, 'Exact, log cosh \\i{A}'], ['dot', P.leap, 'LEAP-Global'], ['square', P.local, 'LEAP-Local']],
     { vertical: true, lineHeight: 22 });
   const markLbl = rich(svg, 0, 0, '', { class: 'tick halo', fill: P.regimeHi });

@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="../css/fig.css">
 </head>
 <body>
-<main id="fig" role="img" aria-label="Animated version of Figure 2. Observed paths follow the physics over the barrier from A to B; reference paths from Brownian motion with the same endpoints cut through the barrier; LEAP learns the correction between them from complete paths; minimizing the learned action lifts a reference path over the barrier."></main>
+<main id="fig" role="img" aria-label="Animated version of Figure 2. Observed paths climb over the barrier from A to B; reference paths loosely follow their average, about half passing through the barrier; LEAP learns the path log ratio between them from complete paths; minimizing the learned action lifts a reference path out of the barrier onto the representative trajectory."></main>
 <div class="seg" id="chips"></div>
 <div class="controls" id="controls"></div>
 <script src="../js/fig.js"></script>
@@ -40,18 +40,23 @@
   Landscape.draw(st.bg, k, 0, oy);
 
   // Observed paths: Metropolis-Hastings samples of the toy dynamics between A and B, kept above the curve.
-  // Reference paths: Brownian motion around the average observed path with the data's diffusion, the reference LEAP
-  // was trained with. It knows nothing of the landscape, so some of its paths dip under the barrier.
+  // Reference paths: the reference LEAP was trained with, Brownian motion with the data's diffusion around randomly
+  // raised or lowered copies of the average observed path. It knows nothing of the drift or the barrier, so many of its
+  // paths cut through the barrier while others pass far above it.
   const data = window.LEAP_TOY_PATHS.paths.map((p) => Float64Array.from(p));
-  const MEAN = window.LEAP_TOY_FIELD.mean_path;
-  const refPath = () => { const z = T.bridge([0, 0], [0, 0], N, R, D), q = new Float64Array(2 * (N + 1));
-    for (let i = 0; i < q.length; i++) q[i] = MEAN[i] + z[i]; return q; };
+  const MEAN = window.LEAP_TOY_FIELD.mean_path, OFF = window.LEAP_TOY_FIELD.offset || { mu: 0, sd: 0 };
+  const refPath = () => { const z = T.bridge([0, 0], [0, 0], N, R, D), c = OFF.mu + OFF.sd * R.normal(), q = new Float64Array(2 * (N + 1));
+    for (let i = 0; i <= N; i++) { q[2 * i] = MEAN[2 * i] + z[2 * i]; q[2 * i + 1] = MEAN[2 * i + 1] + z[2 * i + 1] + c * Math.sin(Math.PI * i / N) ** 2; }
+    return q; };
   const refPaths = Array.from({ length: 24 }, refPath);
-  const dips = refPaths.filter((q) => !T.aboveGround(q)), over = refPaths.filter((q) => T.aboveGround(q));
+  const ub = ground.bump_px / ground.L;
+  const under = (q) => { let m = 0; for (let i = 0; i <= N; i++) if (Math.abs(q[2 * i] - ub) < 0.12) m = Math.max(m, T.ground_h(q[2 * i]) - q[2 * i + 1]); return m; };
+  const dips = refPaths.filter((q) => under(q) > 0.01), over = refPaths.filter((q) => T.aboveGround(q));
+  const high = over.filter((q) => q[N + 1] > MEAN[N + 1] + 0.035);
   const toXY = (p) => { const n = p.length / 2, xs = new Float64Array(n), ys = new Float64Array(n);
     for (let i = 0; i < n; i++) { xs[i] = X(p[2 * i]); ys[i] = Y(p[2 * i + 1]); } return [xs, ys]; };
   const firstData = [0, 4, 8, 13].map((i) => toXY(data[i]));
-  const firstRefs = [dips[0], over[0], dips[1], over[1]].map(toXY);
+  const firstRefs = [dips[0], high[0] || over[0], dips[1], over[0] === high[0] ? over[1] : over[0]].map(toXY);
   // Stage 2, as in training: one complete observed path against K reference paths with the same endpoints.
   const batches = [];
   for (let bi = 0; bi < 6; bi++) batches.push({ obs: toXY(data[(bi * 5 + 2) % data.length]), refs: [0, 1, 2, 3].map(() => toXY(refPath())) });
@@ -71,7 +76,7 @@
 
   const STAGES = [
     { name: 'Reference Paths', t0: 0 },
-    { name: 'Path Space Correction', t0: 8 },
+    { name: 'Learning on Paths', t0: 8 },
     { name: 'LEAP Action', t0: 15.8 },
   ];
   const DUR = 23;
@@ -120,8 +125,8 @@
       aRef = smooth((t - 5.6) / 0.6);
       if (t < 4.1) caption('We observe trajectories from simulation, which climb over the barrier from A to B.',
         'LEAP learns only from these samples.');
-      else caption('The reference is Brownian motion around the average observed path.',
-        'It ignores the landscape, so some reference paths dip under the barrier while others pass over it.');
+      else caption('The reference is Brownian motion around randomly shifted copies of the average path.',
+        'It ignores the drift and the barrier, so many of its paths cut through it while others pass far above.');
     } else if (s === 1) {
       const u = t - STAGES[1].t0, per = 1.3, bi = Math.floor(u / per) % batches.length, ph = (u % per) / per;
       const a = Math.min(smooth(ph / 0.12), 1 - smooth((ph - 0.88) / 0.12));
@@ -129,7 +134,7 @@
       bt.refs.forEach((xy) => polyline(ctx, xy[0], xy[1], xy[0].length, { color: P.ref, width: 1.4, dash: [5, 3.5], alpha: 0.95 * a }));
       polyline(ctx, bt.obs[0], bt.obs[1], bt.obs[0].length, { color: P.data, width: 2.4, alpha: a, halo: 'rgba(255,255,255,.9)' });
       aObs = 1; aRef = 1;
-      caption('LEAP learns the path space correction \\i{G}_{\\i{θ}}(\\i{Φ}; \\i{c}) from observed and reference paths.',
+      caption('LEAP learns the path log ratio \\i{G}_{\\i{θ}}(\\i{Φ}; \\i{c}) of observed to reference paths.',
         'Each comparison scores one observed path against \\i{K} reference paths with the same endpoints.');
     } else {
       const u = t - STAGES[2].t0;
