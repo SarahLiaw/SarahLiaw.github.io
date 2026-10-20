@@ -98,6 +98,7 @@ h4.subtitle { font-family: var(--body-font); font-size: 1.15rem; font-weight: 60
 .content ul { margin: 0 0 1em; padding-left: 1.25em; }
 .content li { margin: 0 0 .55em; }
 .eq { overflow-x: auto; overflow-y: hidden; margin: .75rem 0 1.1rem; }
+.eq-narrow { display: none; }
 mjx-container[display="true"] { margin: .4em 0 !important; }
 
 /* BibTeX */
@@ -126,4 +127,10 @@ footer {
   .publication-authors, .tldr { font-size: 1.1rem; }
   .figure-pair { grid-template-columns: 1fr; }
   .content .justified { text-align: left; }
+}
+
+@media (max-width: 600px) {
+  .eq { font-size: .78em; }
+  .eq-wide { display: none; }
+  .eq-narrow { display: block; }
 }
