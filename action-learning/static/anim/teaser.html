@@ -134,8 +134,8 @@
       bt.refs.forEach((xy) => polyline(ctx, xy[0], xy[1], xy[0].length, { color: P.ref, width: 1.4, dash: [5, 3.5], alpha: 0.95 * a }));
       polyline(ctx, bt.obs[0], bt.obs[1], bt.obs[0].length, { color: P.data, width: 2.4, alpha: a, halo: 'rgba(255,255,255,.9)' });
       aObs = 1; aRef = 1;
-      caption('LEAP learns \\i{G}_{\\i{θ}}(\\i{Φ}; \\i{c}), what the reference gets wrong, on complete paths.',
-        'Observed and reference paths with the same endpoints are compared as wholes, never step by step.');
+      caption('LEAP learns the remaining part of the action, \\i{G}_{\\i{θ}}(\\i{Φ}; \\i{c}), from complete paths.',
+        'Observed and reference paths with the same endpoints are compared as complete trajectories.');
     } else {
       const u = t - STAGES[2].t0;
       if (u > 0.8 && u < 5) {

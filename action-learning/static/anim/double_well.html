@@ -53,7 +53,7 @@
   legend(views.drift, L3.x + 12, L3.y + L3.h - 62, [
     ['dash', P.exact, 'True \\i{b}'], ['thick', P.leap, 'LEAP'], ['dotted', P.local, 'Cubic reg.']],
   { vertical: true, lineHeight: 21 });
-  legend(views.drift, L1.x, 512, [['line', P.data, 'observed (kept)'], ['line', '#9aa1ab', 'not kept'], ['dash', P.ref, 'reference']],
+  legend(views.drift, L1.x, 512, [['line', P.data, 'observed (kept)'], ['line', '#9aa1ab', 'discarded'], ['dash', P.ref, 'reference']],
     { widths: [140, 90, 100], gap: 16 });
   const ro = rich(views.drift, L1.x + L1.w, L1.y - 10, '', { 'text-anchor': 'end', class: 'tick' });
   rich(views.drift, L1.x + 6, L1.y - 10, 'Selected trajectories', { class: 'tick' });
