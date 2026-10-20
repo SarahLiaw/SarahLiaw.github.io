@@ -223,7 +223,7 @@
         const i = Math.floor(R.uni() * (m - len + 1)), j = i + len;
         prop.set(path.subarray(2 * i, 2 * j + 2), 2 * i);
         bridgeFill(prop, i, j, R);
-        if (!aboveGround(prop, i + 1, j)) continue;
+        if (!o.free && !aboveGround(prop, i + 1, j)) continue;     // o.free: no feasibility check, the action alone decides
         let dlog = Gpath(prop, i, j) - Gpath(path, i, j);
         if (aM || aC) {
           for (let k = Math.max(i + 1, 1); k < Math.min(j, m); k++) {

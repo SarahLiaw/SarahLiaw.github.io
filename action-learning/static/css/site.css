@@ -14,7 +14,7 @@
   --rule: #e9eaee;
   --title-font: "Google Sans", sans-serif;
   --body-font: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --mono: monospace;
   color-scheme: light;   /* always white, like the reference page */
 }
 
@@ -34,18 +34,21 @@ img { max-width: 100%; height: auto; display: block; }
 
 .container { max-width: 960px; margin: 0 auto; }
 .narrow { max-width: 768px; margin: 0 auto; }
-.section { padding-block: 2.25rem; }
+.section { padding-block: 3.25rem; }
 
 /* top navigation: stays at the top while scrolling and marks the current section */
 html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 section[id] { scroll-margin-top: 4.25rem; }
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1); }
+.reveal.in { opacity: 1; transform: none; }
 .navbar {
   position: sticky; top: 0; z-index: 20; display: flex; justify-content: center; gap: .3rem 2.6rem;
+  -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
   padding: .95rem max(16px, env(safe-area-inset-right, 0px)) .85rem max(16px, env(safe-area-inset-left, 0px));
   margin-left: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
   margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px)));
-  background: rgba(255, 255, 255, .96); border-bottom: 1px solid transparent; transition: border-color .2s;
+  background: rgba(255, 255, 255, .78); border-bottom: 1px solid transparent; transition: border-color .2s;
   font-family: var(--body-font); font-size: 1.1rem; white-space: nowrap;
 }
 .navbar.scrolled { border-bottom-color: var(--rule); }
@@ -71,6 +74,7 @@ section[id] { scroll-margin-top: 4.25rem; }
 .button:hover { text-decoration: none; filter: brightness(1.15); }
 .button svg { width: 1.05em; height: 1.05em; fill: currentColor; }
 .tldr { font-size: 1.25rem; margin: 1.5rem auto 0; max-width: 860px; color: var(--text); text-wrap: pretty; }
+.tldr b { font-weight: 700; }
 
 /* figures */
 .figure-frame {
@@ -87,7 +91,7 @@ figcaption { color: var(--muted); font-size: .9rem; margin-top: .6rem; text-alig
 
 /* text */
 h2.title { font-family: var(--body-font); font-size: 2rem; font-weight: 600; color: var(--strong); text-align: center; margin: 0 0 1.25rem; line-height: 1.125; }
-h3.title { font-family: var(--body-font); font-size: 1.5rem; font-weight: 600; color: var(--strong); margin: 0 0 1rem; line-height: 1.2; text-wrap: balance; }
+h3.title { font-family: var(--body-font); font-size: 1.5rem; font-weight: 600; color: var(--strong); margin: 0 0 1rem; line-height: 1.125; text-wrap: balance; }
 h4.subtitle { font-family: var(--body-font); font-size: 1.15rem; font-weight: 600; color: var(--strong); margin: 1.75rem 0 .5rem; }
 .content p { margin: 0 0 1em; }
 .content .justified { text-align: justify; hyphens: auto; }
@@ -111,7 +115,7 @@ footer {
   margin-left: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
   margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px)));
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  font-size: .95rem; text-align: center;
+  font-size: 1rem; text-align: center;
 }
 
 @media (max-width: 768px) {

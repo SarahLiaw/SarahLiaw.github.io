@@ -62,7 +62,7 @@
     <div class="figure-frame">
       <iframe src="static/anim/teaser.html" title="LEAP in three steps" loading="eager"></iframe>
     </div>
-    <figcaption>A toy landscape. The observed paths come from its true dynamics, and the last step uses the action LEAP learned from them.</figcaption>
+    <figcaption>Observed paths come from the toy's true dynamics, and the last step uses the action LEAP learned from them.</figcaption>
   </figure>
 </section>
 
@@ -76,12 +76,12 @@
 <section class="section">
   <div class="container content">
     <h3 class="title">From Trajectory Samples to Path Inference</h3>
-    <p class="justified">Understanding how systems move between states requires reasoning about the trajectories that connect them. Which paths realize a transition, which mechanisms are plausible, and which paths remain likely under perturbations or constraints? These questions need an objective on complete paths. When the dynamics are known, stochastic actions such as the Onsager–Machlup functional provide one. The action is a physical quantity. It assigns a scalar to every complete trajectory, and for a diffusion it adds up how far each step departs from the drift.</p>
-    <p class="justified">In many applications, however, we do not know the action. We instead observe trajectories from simulation or experiment, like molecular simulation traces, state transitions, policy rollouts or logs of a stochastic process. Learned methods often predict local dynamics or generate trajectories. These objects are useful, but they do not directly give the reusable path objective needed for downstream trajectory inference. We call the task of recovering an evaluable action from trajectory samples <b>action learning</b>.</p>
+    <p class="justified">Understanding how systems move between states requires reasoning about the trajectories that connect them, whether two molecular conformations are joined by several transition routes through different intermediates or a robot acts through a sequence of decisions. In these settings the object of interest is often the trajectory itself, namely which paths realize a transition, which mechanisms are plausible and which paths remain likely under perturbations or constraints, and answering such questions requires an objective on complete paths. When the dynamics are known, stochastic action functionals such as the Onsager–Machlup functional provide exactly this objective, assigning to every complete trajectory a physical cost that, for a diffusion, accumulates how far each step departs from the drift.</p>
+    <p class="justified">In many applications, however, we do not know the action and instead observe trajectories from simulation or experiment, such as molecular simulation traces, robot trajectories, policy rollouts or logs of a stochastic process. Learned methods typically fit a one step predictor or a trajectory generator to such data, and while these objects are useful, neither directly gives the reusable path objective that downstream trajectory inference needs. We call the task of recovering an evaluable action from trajectory samples <b>action learning</b>, and the central idea of this work is to treat the action itself as the object to learn, so that one learned action can be ranked against, optimized, steered and sampled long after training.</p>
     <figure>
       <div class="figure-pair">
-        <div><img src="static/figures/fig1a_local.png" alt="Local dynamics learning: paths assembled from local transitions between basins A and B." width="1400" height="481"><p class="sub"><b>(a) Local dynamics learning.</b> Local transition laws induce a likelihood over complete trajectories.</p></div>
-        <div><img src="static/figures/fig1b_global.png" alt="Trajectory action learning: complete paths from A to B compared as wholes." width="1400" height="529"><p class="sub"><b>(b) Trajectory action learning.</b> LEAP learns relative path costs from complete trajectory comparisons.</p></div>
+        <div><img src="static/figures/fig1a_local.png" alt="Local dynamics learning: paths assembled from local transitions between basins A and B." width="1400" height="481"><p class="sub"><b>(a) Local dynamics learning</b> from transition laws</p></div>
+        <div><img src="static/figures/fig1b_global.png" alt="Trajectory action learning: complete paths from A to B compared as wholes." width="1400" height="529"><p class="sub"><b>(b) Trajectory action learning</b> from complete paths</p></div>
       </div>
     </figure>
   </div>
@@ -90,35 +90,40 @@
 <section class="section" id="method" data-nav="method">
   <div class="container content">
     <h3 class="title">Learning Action Functionals from Trajectory Samples</h3>
-    <p class="justified">LEAP needs trajectory samples for each context \(c\), such as endpoints, a terminal region or a horizon, but not the drift, potential or simulator likelihood. It anchors the unknown action to a tractable reference process and learns the remaining correction from complete trajectories.</p>
-    <div class="eq">\[ S_\theta(\Phi;c) \;=\; \underbrace{-\log p_{\mathrm{ref}}(\Phi\mid c)}_{\text{reference action}} \;-\; \underbrace{\widetilde G_\theta(\Phi;c)}_{\text{learned correction}} \]</div>
-    <p class="justified">The contrastive objective is minimized by the log density ratio of data to reference, up to a constant per context, and training never samples from the learned action. In structured settings, the correction recovers changes in the underlying dynamics, and more generally it can capture nonadditive interactions across transitions.</p>
+    <h4 class="subtitle">The Action as a Path Space Correction</h4>
+    <p class="justified">For a discretized trajectory \(\Phi = (x_0, \dots, x_N)\) and conditioning variables \(c\), such as endpoints, terminal regions, horizon or diffusion level, LEAP targets the stochastic action \(S^*(\Phi;c) = -\log p_{\mathrm{data}}(\Phi\mid c) + \alpha(c)\), which it learns from trajectory samples alone, without the underlying drift, potential or simulator likelihood, by writing the unknown action against an evaluable reference path measure,</p>
+    <div class="eq">\[ S^*(\Phi;c) \;=\; \underbrace{-\log p_{\mathrm{ref}}(\Phi\mid c)}_{\text{reference action}} \;-\; \underbrace{\log \frac{p_{\mathrm{data}}(\Phi\mid c)}{p_{\mathrm{ref}}(\Phi\mid c)}}_{\text{path space correction } G^*(\Phi;c)} \;+\; \alpha(c), \]</div>
+    <p class="justified">so that learning the action reduces to learning the path space correction \(G^*\). LEAP estimates \(G^*\) with a setwise comparison objective that scores each observed trajectory against \(K\) reference trajectories of the same context, and every population minimizer of this objective equals \(G^* + a(c)\) for every \(K \ge 1\), so the context dependent term cancels from each comparison and training never needs samples from the learned action.</p>
+    <h4 class="subtitle">An Exact Dynamical Correction</h4>
+    <p class="justified">When the data and reference are Gaussian Markov processes that share a diffusion coefficient, the correction takes an exact dynamical form, which with \(v_k = (x_{k+1} - x_k)/\Delta t\) and \(u_\theta\) parameterizing \(b_{\mathrm{data}} - b_{\mathrm{ref}}\) reads</p>
+    <div class="eq">\[ G_\theta(\Phi;c) \;=\; \sum_{k=0}^{N-1} \Big[\, \underbrace{\tfrac{1}{2D}\, u_\theta(x_k,t_k;c)^{\top}\big(v_k - b_{\mathrm{ref}}(x_k,t_k;c)\big)}_{\text{velocity alignment}} \;-\; \underbrace{\tfrac{1}{4D}\, \lVert u_\theta(x_k,t_k;c)\rVert^2}_{\text{normalization cost}} \,\Big]\, \Delta t \]</div>
+    <p class="justified">and equals the exact path log likelihood ratio when \(b_{\mathrm{data}} = b_{\mathrm{ref}} + u^*\). Selecting data and reference by the same event, such as a terminal region, then only adds a context constant, so the correction still recovers the original drift, while information shared across the whole trajectory, such as a latent variable fixed along the path, is captured by LEAP-Global, which learns the correction from the complete path instead of summing transition terms.</p>
   </div>
 </section>
 
 <section class="section" id="inference" data-nav="inference">
   <div class="container content">
     <h3 class="title">Downstream Trajectory Inference</h3>
-    <p class="justified">Because \(S_\theta\) is an action on complete trajectories, we can reuse it after training. The same learned object can rank candidate paths, infer representative trajectories, incorporate mechanism preferences, impose soft constraints and define trajectory distributions. Each new request adds a term to the action and changes the inference problem without retraining the model. If the learned action is within \(\varepsilon\) of the true one, an optimized path stays within \(2\varepsilon\) of optimal.</p>
+    <p class="justified">Because \(S_\theta\) is an action on complete trajectories, the same learned object can be reused after training to rank candidate paths, infer representative trajectories, incorporate mechanism preferences, impose soft constraints and define trajectory distributions. Each new request simply adds a term to the action and changes the inference problem without retraining the model, and the guarantee carries over, since an action within \(\varepsilon\) of the true one up to a constant has minimizers within \(2\varepsilon\) of optimal under the true action.</p>
     <figure>
       <div class="figure-frame">
         <iframe src="static/anim/inference.html" title="Downstream trajectory inference with one action" loading="lazy"></iframe>
       </div>
-      <figcaption>The action LEAP learned on the toy landscape. Dashed paths are the solutions before the preference or penalty. Drag the red disc to move the constraint.</figcaption>
+      <figcaption>All four panels use one learned action. Dashed paths omit the added term, and the red disc can be dragged.</figcaption>
     </figure>
-    <p class="justified">Our approach applies broadly to trajectories from dynamical systems, including molecular simulations, stochastic physical systems and logged sequential processes, and may help analyze and steer systems in science, robotics and planning.</p>
+    <p class="justified">Nothing in this recipe is specific to physics, since LEAP only needs trajectory samples and a reference whose path density can be evaluated, so it applies equally to molecular simulations, stochastic physical systems, robot trajectories and logged agent rollouts, where a learned action can help analyze and steer behavior in science, robotics and planning.</p>
   </div>
 </section>
 
 <section class="section" id="experiments" data-nav="experiments">
   <div class="container content">
     <h3 class="title">Recovering Dynamics under Terminal Selection</h3>
-    <p class="justified">Trajectories of the double well \(dX_t = b(X_t)\,dt + \sqrt{2D}\,dW_t\) with \(b(x) = x - x^3\) start at \(x_0 = -1\) and are kept only if \(x_T \in [0.9, 1.1]\) at \(T = 3\). Selecting on the final state changes the distribution of every step, so local regression fits the selected process rather than the original drift. LEAP compares the selected paths with a Brownian reference selected by the same window, which changes their path log likelihood ratio only by a constant. LEAP reaches drift MSE \((3.2 \pm 2.7) \times 10^{-4}\), against 0.7752 for cubic regression, whose basis contains the exact drift. With the learned potential fixed, it also infers near optimal paths to a new endpoint, with true path cost 0.2506 against the analytic 0.2500 at \(T = 16\).</p>
+    <p class="justified">Trajectories of the double well \(dX_t = b(X_t)\,dt + \sqrt{2D}\,dW_t\) with \(b(x) = x - x^3\) start at \(x_0 = -1\) and are kept only if \(x_T \in [0.9, 1.1]\) at \(T = 3\). Selecting on the final state changes the distribution of every step, so local regression fits the selected process rather than the original drift. LEAP instead compares the selected paths with a Brownian reference selected by the same window, which changes their path log likelihood ratio only by a constant, and reaches drift MSE \((3.2 \pm 2.7) \times 10^{-4}\), against 0.7752 for cubic regression even though its basis contains the exact drift. With the learned potential fixed, it also infers near optimal paths to new endpoints and horizons.</p>
     <figure>
       <div class="figure-frame">
         <iframe src="static/anim/double_well.html" title="Recovering dynamics under terminal selection" loading="lazy"></iframe>
       </div>
-      <figcaption>We simulate the paths live from the same SDE. The drift curves show the LEAP and cubic regression fits over three seeds (mean ± SD).</figcaption>
+      <figcaption>We simulate paths live from the SDE and show the LEAP and cubic regression drifts over three seeds (mean ± SD).</figcaption>
     </figure>
   </div>
 </section>
@@ -126,12 +131,12 @@
 <section class="section" data-nav="experiments">
   <div class="container content">
     <h3 class="title">Recovering a Nonadditive Trajectory Action</h3>
-    <p class="justified">An unobserved physical property, like an unknown mass, can stay fixed during a trajectory while its effect accumulates over the full path. In a 31 body orbital system initialized from JPL HORIZONS, we sample \(z \in \{-1, +1\}\) once per path and change the solar mass to \(m_\odot(1 + z\eta)\). After marginalizing \(z\), the exact correction is \(\sum_k m_k + \log\cosh(\sum_k d_k)\), which couples every transition of the path. Models that score one transition at a time, LEAP-Local and Transition NCE, stay at the constant prediction level (NRMSE 1.0013 and 1.0008). LEAP-Global sees the complete path with per step features of the nominal dynamics, including their sensitivity to the solar mass, but never \(z\). It reaches 0.2280 and recovers the hidden mass perturbation as \(1.02 \times 10^{-4}\), against the true \(1.04 \times 10^{-4}\). At 42 bodies and 256 transitions, 64,764 coordinates per path, it reaches 0.1107 while LEAP-Local stays at 1.0015.</p>
+    <p class="justified">An unobserved physical property, like an unknown mass, can stay fixed along a trajectory while its effect accumulates over the whole path. When a hidden sign \(z\), drawn once per path, perturbs the solar mass of a 31 body system, the exact correction after marginalizing \(z\) is \(\sum_k m_k + \log\cosh(\sum_k d_k)\), which couples every transition of the path. LEAP-Local, which scores one transition at a time, stays at the constant prediction level (NRMSE 1.0013), whereas LEAP-Global, which sees the complete path and its sensitivity to the solar mass but never \(z\), reaches 0.2280 and recovers the hidden mass perturbation as \(1.02 \times 10^{-4}\) against the true \(1.04 \times 10^{-4}\). The gap persists at 42 bodies with 64,764 coordinates per path, where LEAP-Global reaches 0.1107 while LEAP-Local stays at 1.0015.</p>
     <figure>
       <div class="figure-frame">
         <iframe src="static/anim/orbital.html" title="Recovering a nonadditive trajectory action" loading="lazy"></iframe>
       </div>
-      <figcaption>All paths are held out. The open circle follows the accumulated evidence of the path on the left.</figcaption>
+      <figcaption>On held out paths, the open circle tracks the path summary \(A\) of the path on the left.</figcaption>
     </figure>
   </div>
 </section>
@@ -139,12 +144,12 @@
 <section class="section" data-nav="experiments">
   <div class="container content">
     <h3 class="title">Reusing Learned Actions across Conditions and Objectives</h3>
-    <p class="justified">Molecular trajectories are often analyzed in a few collective coordinates whose effective dynamics have no closed form. We learn one action for alanine dipeptide in its backbone angles \((\phi, \psi)\) from 613 reactive C7eq&nbsp;→&nbsp;C7ax trajectories of OpenMM Langevin simulations at 600&nbsp;K. Keeping it fixed, we complete paths from a few observed states and add basin preferences and angular constraints, all without retraining. With the reference of the new temperature, the correction learned at 600&nbsp;K also scores 500&nbsp;K paths on par with a model trained at 500&nbsp;K (AUROC 0.9579 and 0.9403 within each context).</p>
+    <p class="justified">Molecular trajectories are often analyzed in a few collective coordinates whose effective dynamics have no closed form, so we learn one action for alanine dipeptide in its backbone angles \((\phi, \psi)\) from reactive C7eq&nbsp;→&nbsp;C7ax trajectories simulated at 600&nbsp;K. Keeping this action fixed, we complete paths from a few observed states and add basin preferences and angular constraints without retraining, and with the reference of the new temperature, the correction learned at 600&nbsp;K also scores 500&nbsp;K paths on par with a model trained at 500&nbsp;K (AUROC 0.9579 and 0.9403 within each context).</p>
     <figure>
       <div class="figure-frame">
         <iframe src="static/anim/alanine.html" title="Reuse of a fixed molecular action" loading="lazy"></iframe>
       </div>
-      <figcaption>LEAP paths from the paper on the 600&nbsp;K free energy. The molecule shows restrained configurations at the angles along each path.</figcaption>
+      <figcaption>LEAP paths from the paper on the 600&nbsp;K free energy, with the molecule drawn at each path's angles.</figcaption>
     </figure>
   </div>
 </section>
@@ -152,9 +157,9 @@
 <section class="section">
   <div class="container content">
     <h3 class="title">Conclusion</h3>
-    <p class="justified">LEAP treats the stochastic action as a reusable learning target for trajectory data. Learning an objective on path space enables a common interface between trajectory data and diverse downstream inference problems. Looking forward, we hope action learning encourages a broader view for trajectory modeling, shifting the focus to learning reusable objectives over complete paths.</p>
+    <p class="justified">LEAP treats the stochastic action as a reusable learning target for trajectory data, and learning an objective on path space gives a common interface between trajectory data and diverse downstream inference problems. Looking forward, we hope action learning encourages a broader view for trajectory modeling, in science as well as robotics and other sequential domains, by shifting the focus to learning reusable objectives over complete paths.</p>
     <h4 class="subtitle">Limitations</h4>
-    <p class="justified">LEAP requires overlap between the reference and trajectory distribution. The structured correction is exact for Gaussian Markov processes with shared diffusion, and state dependent diffusion requires more likelihood ratio terms. Our alanine experiments learn an effective action in \((\phi, \psi)\) instead of the full molecular action.</p>
+    <p class="justified">LEAP requires overlap between the reference and trajectory distributions, and its structured correction is exact for Gaussian Markov processes with shared diffusion, while state dependent diffusion requires more likelihood ratio terms. Our alanine experiments also learn an effective action in \((\phi, \psi)\) instead of the full molecular action.</p>
   </div>
 </section>
 
@@ -193,6 +198,15 @@
         var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = 'Selected';
       }
     });
+  })();
+  // content rises into view as it is reached
+  (function () {
+    if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var items = document.querySelectorAll('.section h2, .section h3, .section h4, .section p, .section figure, .section .eq, .section .bib');
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    items.forEach(function (el) { if (el.getBoundingClientRect().top > window.innerHeight) { el.classList.add('reveal'); io.observe(el); } });
   })();
   // the nav marks the section being read: the last one whose top has passed a third of the window
   (function () {

@@ -32,7 +32,7 @@
 
   // Left: inner planets of one held-out path (heliocentric, Earth's orbital plane).
   const SS = { cx: 200, cy: 300, s: 108 };       // pixels per AU
-  rich(svg, 22, 104, 'One held out path of the 31 body system (heavier Sun)', { class: 'sub' });
+  rich(svg, 22, 104, 'One held out path of the 31 body system', { class: 'sub' });
   const dayText = rich(svg, 22, 128, '', { class: 'tick' });
   const names = { mercury: 'Mercury', venus: 'Venus', earth: 'Earth', mars: 'Mars' };
   for (const k in names) {
@@ -40,10 +40,10 @@
     rich(svg, SS.cx + low[0] * SS.s, SS.cy - low[1] * SS.s + 15, names[k], { class: 'tick', 'text-anchor': 'middle', fill: '#8a919c' });
   }
 
-  // Right: Fig. 6, correction against accumulated evidence for all 384 held-out candidates.
+  // Right: Fig. 6, correction against the path summary A for all 384 held-out candidates.
   const C = { x: 490, y: 96, w: 480, h: 372 };
   const axC = axes(svg, { ...C, xlim: [-7.6, 6.6], ylim: [-0.4, 7.4], xticks: [-6, -3, 0, 3, 6], yticks: [0, 2, 4, 6],
-    xlabel: 'Accumulated evidence \\i{A}', ylabel: 'Correction (nats)', ylabelGap: 40 });
+    xlabel: 'Path summary \\i{A} = Σ\\i{d}_{\\i{k}}', ylabel: 'Correction (nats)', ylabelGap: 40 });
   legend(svg, axC.sx(-2.3), C.y + 20, [['dash', P.exact, 'Exact, log cosh \\i{A}'], ['dot', P.leap, 'LEAP-Global'], ['square', P.local, 'LEAP-Local']],
     { vertical: true, lineHeight: 22 });
   const markLbl = rich(svg, 0, 0, '', { class: 'tick halo', fill: P.regimeHi });

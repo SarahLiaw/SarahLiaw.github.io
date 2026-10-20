@@ -33,6 +33,9 @@
 
   // 2 x 2 panels in the order of Fig. 3
   const PW = 500, PH = 272, k = 470 / ground.L;
+  // reward region (height above the channel, vertical size), disc (height, radius), penalty and tilt weights;
+  // chosen so every request stays where the learned action has data (build/toy_leap_explore.js)
+  const CFG = { mOff: 0.04, mSh: 0.03, lMax: 150, cOff: -0.005, cR: 0.045, lC: 10000 };
   const panel = (i) => ({ x0: (i % 2) * PW, y0: Math.floor(i / 2) * PH });
   const X = (i, u) => panel(i).x0 + 15 + u * ground.L * k;
   const Y = (i, h) => panel(i).y0 + 52 + (ground.y_ref - h * ground.L - ground.crop_top) * k;
@@ -50,27 +53,25 @@
   el('line', { x1: PW, x2: PW, y1: 12, y2: H - 12, stroke: '#d9dbe0', 'stroke-width': 1 }, svg);
   el('line', { x1: 12, x2: W - 12, y1: PH, y2: PH, stroke: '#d9dbe0', 'stroke-width': 1 }, svg);
   const lamText = rich(svg, panel(1).x0 + PW - 18, panel(1).y0 + 250, '', { class: 'tick', 'text-anchor': 'end' });
-  rich(svg, panel(1).x0 + PW / 2, Y(1, gb + d + 0.09 + 0.06) - 4, 'reward region \\i{M}', { class: 'tick', 'text-anchor': 'middle' });
+  rich(svg, panel(1).x0 + PW / 2, Y(1, gb + d + CFG.mOff + 1.4 * CFG.mSh) - 6, 'reward region \\i{M}', { class: 'tick', 'text-anchor': 'middle' });
 
+  // inference starts from paths of the reference LEAP was trained with: Brownian motion around the average observed path
+  const MEAN = window.LEAP_TOY_FIELD.mean_path, RS = LEAPToy.rng(5);
   function arc() {
-    const p = new Float64Array(2 * (N + 1));
-    for (let i = 0; i <= N; i++) {
-      const s = i / N;
-      p[2 * i] = A[0] + (B[0] - A[0]) * s;
-      p[2 * i + 1] = A[1] + (B[1] - A[1]) * s + 0.33 * Math.sin(Math.PI * s);
-    }
+    const z = T.bridge([0, 0], [0, 0], N, RS, T.params.D), p = new Float64Array(2 * (N + 1));
+    for (let i = 0; i < p.length; i++) p[i] = MEAN[i] + z[i];
     return p;
   }
-  function solve(o, n) { const p = arc(); for (let i = 0; i < n; i++) T.descend(p, 50, o); return p; }
-  const M = { c: [ub, gb + d + 0.09], su: 0.16, sh: 0.045 };
-  const C = { c: [ub, gb + d + 0.03], r: 0.05 };
+  function solve(o, n) { const p = Float64Array.from(MEAN); for (let i = 0; i < n; i++) T.descend(p, 50, o); return p; }
+  const M = { c: [ub, gb + d + CFG.mOff], su: 0.16, sh: CFG.mSh };
+  const C = { c: [ub, gb + d + CFG.cOff], r: CFG.cR };
   const base = solve({}, 100);                    // lambda = 0 path, dashed in panels 2-3
 
   const R = LEAPToy.rng(17);
   const S = {
     rep: { path: arc(), opt: {}, t: 0 },
     tilt: { path: Float64Array.from(base), opt: { M, lM: 0 }, t: 0 },
-    con: { path: arc(), opt: { C, lC: 900 }, t: 0 },
+    con: { path: arc(), opt: { C, lC: CFG.lC }, t: 0 },
     mh: { path: Float64Array.from(base), samples: [], since: 0, t: 0 },
   };
 
@@ -115,17 +116,17 @@
     // tilting: the weight grows with a warm start, and the route switches past a threshold
     S.tilt.t += dt;
     if (S.tilt.t > 9) { S.tilt.t = 0; S.tilt.path = Float64Array.from(base); S.tilt.opt = { M, lM: 0 }; }
-    S.tilt.opt.lM = 500 * smooth(Math.min(S.tilt.t, 6.5) / 6.5);
+    S.tilt.opt.lM = CFG.lMax * smooth(Math.min(S.tilt.t, 6.5) / 6.5);
     T.descend(S.tilt.path, 30, S.tilt.opt);
     S.con.t += dt;
     if (S.con.moved) replan(40);
     else {
-      if (S.con.t > 6) { S.con.t = 0; S.con.path = arc(); S.con.opt = { C, lC: 900 }; }
+      if (S.con.t > 6) { S.con.t = 0; S.con.path = arc(); S.con.opt = { C, lC: CFG.lC }; }
       if (S.con.t > 0.6) T.descend(S.con.path, Math.round(2 + 20 * smooth((S.con.t - 0.6) / 2)), S.con.opt);
     }
     // sampling: Metropolis-Hastings with reference-bridge proposals
     const m = S.mh;
-    T.mh(m.path, R, 2500, { window: 10 });
+    T.mh(m.path, R, 2500, { window: 10, free: true });
     m.since += dt; m.t += dt;
     if (m.since > 0.35) { m.since = 0; m.samples.push({ p: Float64Array.from(m.path), color: P.samples[m.samples.length % 3] }); }
     if (m.t > 9) { m.t = 0; m.samples = []; }
@@ -140,14 +141,14 @@
   function replan(n) {
     const c = S.con;
     T.descend(c.path, n, c.opt); T.descend(c.alt, n, c.altOpt);
-    if (T.F(c.alt, c.altOpt) < T.F(c.path, c.opt) - 0.5) { c.path = Float64Array.from(c.alt); c.opt = { C, lC: 900 }; }
+    if (T.F(c.alt, c.altOpt) < T.F(c.path, c.opt) - 0.5) { c.path = Float64Array.from(c.alt); c.opt = { C, lC: CFG.lC }; }
   }
   function moveDisc([x, y]) {
     const u = Math.min(Math.max((x - panel(2).x0 - 15) / (ground.L * k), A[0] + 0.03), B[0] - 0.03);
     const h = (ground.y_ref - ground.crop_top - (y - panel(2).y0 - 52) / k) / ground.L;
     C.c[0] = u; C.c[1] = Math.min(Math.max(h, T.ground_h(u)), T.ground_h(u) + 0.3);
-    if (!S.con.moved) { S.con.moved = true; S.con.opt = { C, lC: 900 }; hint.setAttribute('opacity', 0); }
-    S.con.alt = arc(); S.con.altOpt = { C, lC: 900 };
+    if (!S.con.moved) { S.con.moved = true; S.con.opt = { C, lC: CFG.lC }; hint.setAttribute('opacity', 0); }
+    S.con.alt = arc(); S.con.altOpt = { C, lC: CFG.lC };
     if (!clock.playing) { for (let i = 0; i < 50; i++) replan(50); draw(); }
   }
   let dragging = false;
@@ -171,15 +172,15 @@
   // reduced motion: show each panel's settled state without replaying the animation
   function settle() {
     for (let i = 0; i < 100; i++) { T.descend(S.rep.path, 50, S.rep.opt); T.descend(S.con.path, 50, S.con.opt); }
-    S.tilt.opt.lM = 500; S.tilt.t = 6.5;
+    S.tilt.opt.lM = CFG.lMax; S.tilt.t = 6.5;
     for (let i = 0; i < 200; i++) T.descend(S.tilt.path, 30, S.tilt.opt);
-    for (let j = 0; j < 14; j++) { T.mh(S.mh.path, R, 2500, { window: 10 }); S.mh.samples.push({ p: Float64Array.from(S.mh.path), color: P.samples[j % 3] }); }
+    for (let j = 0; j < 14; j++) { T.mh(S.mh.path, R, 2500, { window: 10, free: true }); S.mh.samples.push({ p: Float64Array.from(S.mh.path), color: P.samples[j % 3] }); }
     S.rep.t = S.con.t = 3; S.mh.t = 5;
   }
   if (Fig.reduced) settle();
   else {
     // start the sampler with a few samples so the first frame is complete
-    for (let j = 0; j < 6; j++) { T.mh(S.mh.path, R, 2500, { window: 10 }); S.mh.samples.push({ p: Float64Array.from(S.mh.path), color: P.samples[j % 3] }); }
+    for (let j = 0; j < 6; j++) { T.mh(S.mh.path, R, 2500, { window: 10, free: true }); S.mh.samples.push({ p: Float64Array.from(S.mh.path), color: P.samples[j % 3] }); }
     for (let f = 0; f < Fig.query('t', 0) * 60; f++) step(1 / 60);
   }
   draw();
