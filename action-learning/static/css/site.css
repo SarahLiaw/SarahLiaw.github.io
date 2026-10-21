@@ -94,7 +94,7 @@ h2.title { font-family: var(--body-font); font-size: 2rem; font-weight: 600; col
 h3.title { font-family: var(--body-font); font-size: 1.5rem; font-weight: 600; color: var(--strong); margin: 0 0 1rem; line-height: 1.125; text-wrap: balance; }
 h4.subtitle { font-family: var(--body-font); font-size: 1.15rem; font-weight: 600; color: var(--strong); margin: 1.75rem 0 .5rem; }
 .content p { margin: 0 0 1em; }
-.content .justified { text-align: justify; hyphens: auto; }
+.content .justified { text-align: justify; }
 .content ul, .content ol { margin: 0 0 1em; padding-left: 1.25em; }
 .content li { margin: 0 0 .55em; }
 .eq { overflow-x: auto; overflow-y: hidden; margin: .75rem 0 1.1rem; }

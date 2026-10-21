@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="../css/fig.css">
 </head>
 <body>
-<main id="fig" role="img" aria-label="Animated version of Figure 2. Observed paths climb over the barrier from A to B; reference paths loosely follow their average, about half passing through the barrier; LEAP learns the path log ratio between them from complete paths; minimizing the learned action lifts a reference path out of the barrier onto the representative trajectory."></main>
+<main id="fig" role="img" aria-label="Animated overview of LEAP. Observed paths climb over the barrier from A to B. Reference paths loosely follow their average, and about half pass through the barrier. LEAP learns the path log ratio between them from complete paths. Minimizing the learned action from a reference path that grazes the barrier lifts it onto the representative trajectory."></main>
 <div class="seg" id="chips"></div>
 <div class="controls" id="controls"></div>
 <script src="../js/fig.js"></script>
@@ -124,7 +124,7 @@
       });
       aRef = smooth((t - 5.6) / 0.6);
       if (t < 4.1) caption('We observe trajectories from simulation, which climb over the barrier from A to B.',
-        'LEAP learns only from these samples.');
+        'LEAP never sees the dynamics behind these samples.');
       else caption('The reference is Brownian motion spread around the average observed path.',
         'It ignores the drift and the barrier, so many paths cut through it.');
     } else if (s === 1) {
@@ -134,7 +134,7 @@
       bt.refs.forEach((xy) => polyline(ctx, xy[0], xy[1], xy[0].length, { color: P.ref, width: 1.4, dash: [5, 3.5], alpha: 0.95 * a }));
       polyline(ctx, bt.obs[0], bt.obs[1], bt.obs[0].length, { color: P.data, width: 2.4, alpha: a, halo: 'rgba(255,255,255,.9)' });
       aObs = 1; aRef = 1;
-      caption('LEAP learns the remaining part of the action, \\i{G}_{\\i{θ}}(\\i{Φ}; \\i{c}), from complete paths.',
+      caption('LEAP learns the path log ratio \\i{G}_{\\i{θ}}(\\i{Φ}; \\i{c}) from complete paths.',
         'Observed and reference paths with the same endpoints are compared as complete trajectories.');
     } else {
       const u = t - STAGES[2].t0;
@@ -148,7 +148,7 @@
       polyline(ctx, d0[0], d0[1], d0[0].length, { color: P.ref, width: 1.3, dash: [5, 3.5], alpha: 0.55 });
       polyline(ctx, repXY[0], repXY[1], repXY[0].length, { color: P.action[0], width: 1.6 + 1.2 * g, halo: 'rgba(255,255,255,.85)' });
       caption('Combining it with the reference action gives the learned action \\i{S}_{\\i{θ}}(\\i{Φ}; \\i{c}).',
-        'Minimizing \\i{S}_{\\i{θ}} lifts a reference path out of the barrier onto the representative trajectory.');
+        'Minimizing \\i{S}_{\\i{θ}} from a reference path that grazes the barrier lifts it onto the representative trajectory.');
     }
     tag(tagObs, X(0.36), Y(0.17), aObs * (s < 2 ? 1 : 0));
     tag(tagRef, X(0.66), Y(0.16), aRef * (s === 0 ? 1 : 0));

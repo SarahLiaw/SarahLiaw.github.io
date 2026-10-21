@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="../css/fig.css">
 </head>
 <body>
-<main id="fig" role="img" aria-label="Figure 3 animated. One action on a toy landscape supports four tasks at once: the lowest-action representative trajectory, a tilt toward an upper route whose weight grows until the route switches, a soft constraint that sends the path over a red disc, and Metropolis-Hastings sampling of plausible paths."></main>
+<main id="fig" role="img" aria-label="Downstream inference animated. One action on a toy landscape supports four tasks at once, namely the representative trajectory of lowest action, a tilt toward an upper route whose weight grows until the route switches, a soft constraint that sends the path over a red disc, and Metropolis–Hastings sampling of plausible paths."></main>
 <div class="controls" id="controls"></div>
 <script src="../js/fig.js"></script>
 <script src="../js/toy.js"></script>
@@ -53,7 +53,7 @@
   el('line', { x1: PW, x2: PW, y1: 12, y2: H - 12, stroke: '#d9dbe0', 'stroke-width': 1 }, svg);
   el('line', { x1: 12, x2: W - 12, y1: PH, y2: PH, stroke: '#d9dbe0', 'stroke-width': 1 }, svg);
   const lamText = rich(svg, panel(1).x0 + PW - 18, panel(1).y0 + 250, '', { class: 'tick', 'text-anchor': 'end' });
-  rich(svg, panel(1).x0 + PW / 2, Y(1, gb + d + CFG.mOff + 1.4 * CFG.mSh) - 6, 'reward region \\i{M}', { class: 'tick', 'text-anchor': 'middle' });
+  rich(svg, panel(1).x0 + PW / 2, Y(1, gb + d + CFG.mOff + 1.4 * CFG.mSh) - 6, 'preferred region \\i{M}', { class: 'tick', 'text-anchor': 'middle' });
 
   // inference starts from paths of the reference LEAP was trained with: Brownian motion around the average observed path
   const MEAN = window.LEAP_TOY_FIELD.mean_path, RS = LEAPToy.rng(5);

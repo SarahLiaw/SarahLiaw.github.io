@@ -8,92 +8,114 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans:400,500,700|Noto+Sans|Castoro">
 <link rel="stylesheet" href="../css/fig.css">
 <style>
-  /* the scatter's axis reaches the bottom-right corner, so the control sits top-right here */
+  /* the right panel's axis reaches the bottom-right corner, so the control sits top-right here */
   .controls { top: 10px; bottom: auto; }
   @media (max-width: 600px) { .controls { top: 4px; bottom: auto; transform-origin: top right; } }
 </style>
 </head>
 <body>
-<main id="fig" role="img" aria-label="Recovery of the nonadditive orbital path log ratio. Left: one held-out 31-body path over 32 days. Right: learned versus exact path log ratios for all held-out paths; LEAP-Global follows the exact log cosh A curve while LEAP-Local stays flat."></main>
+<main id="fig" role="img" aria-label="Orbital path log ratio. The left panel shows the inner planets of one held out path of the 31 body system over 32 days. The middle panel shows the running path summary of every held out path, which drifts upward for observed paths with z = +1, downward for observed paths with z = −1 and stays near zero for reference paths. The right panel shows learned path log ratios against the same path summary, where LEAP-Global follows the exact log cosh A curve and LEAP-Local stays in a narrow band."></main>
 <div class="controls" id="controls"></div>
 <script src="../js/fig.js"></script>
 <script src="../data/orbital.js"></script>
 <script>
 (() => {
   'use strict';
-  const { P, el, rich, setRich, stage, polyline, dot, axes, legend, loop, playButton, smooth } = Fig;
+  const { P, rich, setRich, stage, polyline, dot, axes, legend, loop, playButton, smooth } = Fig;
   const O = window.LEAP_ORBITAL;
   const W = 1000, H = 545;
   const host = document.getElementById('fig');
   const st = stage(host, W, H, () => draw());
   const svg = st.svg;
-
-  rich(svg, 16, 32, 'LEAP-Global follows the exact log cosh \\i{A} dependence across held out trajectories.', { class: 'cap cap-em' });
-
-  // Left: inner planets of one held-out path (heliocentric, Earth's orbital plane).
-  const SS = { cx: 200, cy: 300, s: 108 };       // pixels per AU
-  rich(svg, 22, 104, 'One held out path of the 31 body system', { class: 'sub' });
-  const dayText = rich(svg, 22, 128, '', { class: 'tick' });
-  const names = { mercury: 'Mercury', venus: 'Venus', earth: 'Earth', mars: 'Mars' };
-  for (const k in names) {
-    const low = O.planets[k].orbit.reduce((m, q) => (q[1] < m[1] ? q : m));
-    rich(svg, SS.cx + low[0] * SS.s, SS.cy - low[1] * SS.s + 15, names[k], { class: 'tick', 'text-anchor': 'middle', fill: '#8a919c' });
-  }
-
-  // Right: Fig. 6, path log ratio against the path summary A for all 384 held-out candidates.
-  const C = { x: 490, y: 96, w: 480, h: 372 };
-  const axC = axes(svg, { ...C, xlim: [-7.6, 6.6], ylim: [-0.4, 7.4], xticks: [-6, -3, 0, 3, 6], yticks: [0, 2, 4, 6],
-    xlabel: 'Path summary \\i{A} = Σ\\i{d}_{\\i{k}}', ylabel: 'Path log ratio (nats)', ylabelGap: 40 });
-  legend(svg, axC.sx(-2.3), C.y + 20, [['dash', P.exact, 'Exact, log cosh \\i{A}'], ['dot', P.leap, 'LEAP-Global'], ['square', P.local, 'LEAP-Local']],
-    { vertical: true, lineHeight: 22 });
-  const markLbl = rich(svg, 0, 0, '', { class: 'tick halo', fill: P.regimeHi });
-
-  const At = O.A_t_shown;
+  const GROUP = ['#868d97', P.regimeHi, P.regimeLo];          // reference, z = +1, z = -1
   const DAYS = 32, TRAVEL = 8, HOLD = 3, DUR = TRAVEL + HOLD;
-  let t = 0;
-  const px = ([x, y]) => [SS.cx + x * SS.s, SS.cy - y * SS.s];
-  function planetAt(path, day) {
-    const i = Math.min(Math.floor(day), DAYS - 1), f = day - i;
-    return [path[i][0] + (path[i + 1][0] - path[i][0]) * f, path[i][1] + (path[i + 1][1] - path[i][1]) * f];
+  const AL = [-7.6, 7.6], AT = [-6, -3, 0, 3, 6];
+
+  rich(svg, 16, 32, 'The hidden \\i{z} acts on every step, so the path log ratio depends on the whole path through \\i{A}.', { class: 'cap cap-em' });
+
+  // Left: inner planets of the highlighted held out path (heliocentric, Earth's orbital plane).
+  const SS = { cx: 120, cy: 290, s: 85 };       // pixels per AU
+  const PLANETS = { mercury: 'Mercury', venus: 'Venus', earth: 'Earth' };
+  rich(svg, 22, 80, '31 body system', { class: 'sub' });
+  rich(svg, 22, 104, 'solar mass \\i{m}_{⊙}(1 + \\i{zη})', { class: 'tick' });
+  const dayText = rich(svg, SS.cx, 430, '', { class: 'tick', 'text-anchor': 'middle' });
+  for (const k in PLANETS) {
+    const low = O.planets[k].orbit.reduce((m, q) => (q[1] < m[1] ? q : m));
+    rich(svg, SS.cx + low[0] * SS.s, SS.cy - low[1] * SS.s + 15, PLANETS[k], { class: 'tick', 'text-anchor': 'middle', fill: '#8a919c' });
   }
+
+  // Middle: running path summary A_t of all 384 held out candidates; right: their learned log ratios against A.
+  const C2 = { x: 300, y: 96, w: 285, h: 372 }, C3 = { x: 650, y: 96, w: 310, h: 372 };
+  const ax2 = axes(st.bg, { ...C2, xlim: [0, DAYS], ylim: AL, xticks: [0, 8, 16, 24, 32], yticks: AT,
+    xlabel: 'Day', ylabel: 'Path summary \\i{A}_{\\i{t}}', ylabelGap: 40 });
+  const ax3 = axes(st.bg, { ...C3, xlim: [-0.5, 7.5], ylim: AL, xticks: [0, 2, 4, 6], ygrid: AT, xlabel: 'Path log ratio (nats)' });
+  rich(svg, C2.x, 80, 'Each day adds \\i{d}_{\\i{k}} to \\i{A}_{\\i{t}}', { class: 'sub' });
+  rich(svg, C3.x, 80, 'Learned and exact log ratios', { class: 'sub' });
+  legend(svg, C2.x + 12, C2.y + 20, [['line', GROUP[1], 'observed, \\i{z} = +1'], ['line', GROUP[2], 'observed, \\i{z} = −1'],
+    ['line', GROUP[0], 'reference'], ['thick', GROUP[1], 'shown path']], { vertical: true, lineHeight: 21 });
+  legend(svg, ax3.sx(3.0), ax3.sy(1.3), [['dash', P.exact, 'Exact, log cosh \\i{A}'], ['dot', P.leap, 'LEAP-Global'], ['square', P.local, 'LEAP-Local']],
+    { vertical: true, lineHeight: 22 });
+
+  const At = O.At, grp = O.group, shown = O.A_t_shown;
+  const at = (a, day) => { const i = Math.min(Math.floor(day), DAYS - 1), f = day - i; return a[i] + (a[i + 1] - a[i]) * f; };
+  const px = ([x, y]) => [SS.cx + x * SS.s, SS.cy - y * SS.s];
+  const exact = []; for (let i = 0; i <= 240; i++) exact.push(AL[0] + (AL[1] - AL[0]) * i / 240);
+  let t = 0;
 
   function draw() {
     const ctx = st.ctx;
     st.clear();
-    const day = DAYS * smooth(Math.min(t, TRAVEL) / TRAVEL);
-    for (const k in O.planets) {
-      const pl = O.planets[k];
-      const ox = new Float64Array(pl.orbit.length), oyy = new Float64Array(pl.orbit.length);
-      pl.orbit.forEach((q, i) => { const [a, c] = px(q); ox[i] = a; oyy[i] = c; });
-      polyline(ctx, ox, oyy, ox.length, { color: '#d3d7dd', width: 0.9 });
-      const n = Math.floor(day) + 1, ax = new Float64Array(n + 1), ay = new Float64Array(n + 1);
-      for (let i = 0; i < n; i++) { const [a, c] = px(pl.path[i]); ax[i] = a; ay[i] = c; }
-      const [cx, cy] = px(planetAt(pl.path, day));
-      ax[n] = cx; ay[n] = cy;
-      polyline(ctx, ax, ay, n + 1, { color: k === 'mercury' ? P.regimeHi : '#9aa1ab', width: k === 'mercury' ? 2.2 : 1.5 });
-      dot(ctx, cx, cy, k === 'earth' || k === 'venus' ? 4.6 : 3.8, k === 'mercury' ? P.regimeHi : '#7d8590', '#fff', 1);
+    const day = DAYS * smooth(Math.min(t, TRAVEL) / TRAVEL), n = Math.floor(day);
+
+    for (const k in PLANETS) {
+      const pl = O.planets[k], mer = k === 'mercury';
+      polyline(ctx, pl.orbit.map((q) => px(q)[0]), pl.orbit.map((q) => px(q)[1]), pl.orbit.length, { color: '#d3d7dd', width: 0.9 });
+      const tx = [], ty = [];
+      for (let i = 0; i <= n; i++) { const [a, c] = px(pl.path[i]); tx.push(a); ty.push(c); }
+      const [cx, cy] = px([at(pl.path.map((q) => q[0]), day), at(pl.path.map((q) => q[1]), day)]);
+      tx.push(cx); ty.push(cy);
+      polyline(ctx, tx, ty, tx.length, { color: mer ? GROUP[1] : '#9aa1ab', width: mer ? 2.2 : 1.5 });
+      dot(ctx, cx, cy, mer ? 3.8 : 4.4, mer ? GROUP[1] : '#7d8590', '#fff', 1);
     }
     dot(ctx, SS.cx, SS.cy, 8, '#e8a33d', '#fff', 1.2);
-    setRich(dayText, 'day ' + Math.floor(day) + ' of 32');
+    setRich(dayText, 'day ' + n + ' of 32');
 
-    // scatter (complete from the first frame), then the shown path's evidence so far on the exact curve
-    ctx.save(); ctx.beginPath(); ctx.rect(C.x, C.y, C.w, C.h); ctx.clip();
-    for (let i = 0; i < O.A.length; i++) {
-      ctx.globalAlpha = 0.45; ctx.fillStyle = P.local;
-      ctx.fillRect(axC.sx(O.A[i]) - 2.4, axC.sy(O.local[i]) - 2.4, 4.8, 4.8);
+    // observed paths first, the reference band over them, then the shown path on top
+    ctx.save(); ctx.beginPath(); ctx.rect(C2.x, C2.y, C2.w, C2.h); ctx.clip();
+    ctx.lineWidth = 0.8; ctx.lineJoin = 'round';
+    for (const g of [2, 1, 0]) {
+      ctx.strokeStyle = GROUP[g]; ctx.globalAlpha = g ? 0.32 : 0.26;
+      for (let i = 0; i < At.length; i++) {
+        if (grp[i] !== g || i === O.shown) continue;
+        const a = At[i];
+        ctx.beginPath(); ctx.moveTo(ax2.sx(0), ax2.sy(0));
+        for (let k = 1; k <= n; k++) ctx.lineTo(ax2.sx(k), ax2.sy(a[k]));
+        if (day > n) ctx.lineTo(ax2.sx(day), ax2.sy(at(a, day)));
+        ctx.stroke();
+      }
     }
-    for (let i = 0; i < O.A.length; i++) { ctx.globalAlpha = 0.75; dot(ctx, axC.sx(O.A[i]), axC.sy(O.global[i]), 2.8, P.leap); }
     ctx.globalAlpha = 1;
-    const lc = []; for (let i = 0; i <= 200; i++) { const a = -7.6 + 14.2 * i / 200; lc.push([axC.sx(a), axC.sy(Math.log(Math.cosh(a)))]); }
-    polyline(ctx, lc.map((q) => q[0]), lc.map((q) => q[1]), lc.length, { color: P.exact, width: 1.5, dash: [6, 3.5] });
-    const j = Math.min(Math.floor(day), DAYS - 1), f = day - j, a = At[j] + (At[j + 1] - At[j]) * f;
-    const mx = axC.sx(a), my = axC.sy(Math.log(Math.cosh(a)));
-    dot(ctx, mx, my, 6.5, '#fff', P.regimeHi, 2.2);
+    const aNow = at(shown, day), xs = [], ys = [];
+    for (let k = 0; k <= n; k++) { xs.push(ax2.sx(k)); ys.push(ax2.sy(shown[k])); }
+    if (day > n) { xs.push(ax2.sx(day)); ys.push(ax2.sy(aNow)); }
+    polyline(ctx, xs, ys, xs.length, { color: GROUP[1], width: 2.4, halo: '#fff', haloWidth: 2.4 });
     ctx.restore();
-    const right = mx > C.x + C.w - 170;
-    markLbl.setAttribute('x', right ? mx - 12 : mx + 12); markLbl.setAttribute('y', my - 10);
-    markLbl.setAttribute('text-anchor', right ? 'end' : 'start');
-    setRich(markLbl, 'shown path, day ' + Math.floor(day));
+
+    ctx.save(); ctx.beginPath(); ctx.rect(C3.x, C3.y, C3.w, C3.h); ctx.clip();
+    ctx.globalAlpha = 0.45; ctx.fillStyle = P.local;
+    for (let i = 0; i < O.A.length; i++) ctx.fillRect(ax3.sx(O.local[i]) - 2.4, ax3.sy(O.A[i]) - 2.4, 4.8, 4.8);
+    ctx.globalAlpha = 0.75;
+    for (let i = 0; i < O.A.length; i++) dot(ctx, ax3.sx(O.global[i]), ax3.sy(O.A[i]), 2.8, P.leap);
+    ctx.globalAlpha = 1;
+    polyline(ctx, exact.map((a) => ax3.sx(Math.log(Math.cosh(a)))), exact.map((a) => ax3.sy(a)), exact.length,
+      { color: P.exact, width: 1.5, dash: [6, 3.5] });
+    ctx.restore();
+
+    // the shown path's current A_t, carried across to the exact curve
+    const hx = ax2.sx(day), hy = ax2.sy(aNow), mx = ax3.sx(Math.log(Math.cosh(aNow)));
+    polyline(ctx, [hx, mx], [hy, hy], 2, { color: '#a99bc9', width: 1, dash: [2, 3.5] });
+    dot(ctx, hx, hy, 3.6, GROUP[1], '#fff', 1.2);
+    dot(ctx, mx, hy, 6.5, '#fff', GROUP[1], 2.2);
   }
 
   const clock = loop((dt) => { t += dt; if (t > DUR) t = 0; draw(); });

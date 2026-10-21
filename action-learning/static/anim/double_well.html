@@ -42,7 +42,7 @@
     xlabel: 'Time \\i{t}', ylabel: 'State \\i{x}', ylabelGap: 40 });
   // time spent at each state, on the same state axis
   const L1b = { x: 432, y: 100, w: 104, h: 340 };
-  const ax1b = axes(views.drift, { ...L1b, xlim: [0, 0.56], ylim: [-2, 2], xticks: [], yticks: [], ygrid: [-2, -1, 0, 1, 2], xlabel: 'Time at state' });
+  const ax1b = axes(views.drift, { ...L1b, xlim: [0, 0.56], ylim: [-2, 2], xticks: [], yticks: [], ygrid: [-2, -1, 0, 1, 2], xlabel: 'Time spent at \\i{x}' });
   const U = (x) => (x * x - 1) ** 2 / 4;
   const L2 = { x: 640, y: 92, w: 320, h: 92 };
   const ax2 = axes(views.drift, { ...L2, xlim: [-1.5, 1.5], ylim: [-0.02, 0.36], xticks: [], yticks: [0, 0.2],
