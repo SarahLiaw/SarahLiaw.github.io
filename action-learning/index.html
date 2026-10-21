@@ -73,15 +73,15 @@
   </div>
 </section>
 
-<section class="section">
+<section class="section" id="intro">
   <div class="container content">
     <h3 class="title">From Trajectory Samples to Path Inference</h3>
     <p class="justified">Understanding how systems move between states requires reasoning about the trajectories that connect them, whether two molecular conformations are joined by several transition routes through different intermediates or a robot acts through a sequence of decisions. In these settings the object of interest is often the trajectory itself, namely which paths realize a transition, which mechanisms are plausible and which paths remain likely under perturbations or constraints, and answering such questions requires an objective on complete paths. When the dynamics are known, stochastic action functionals such as the Onsager–Machlup functional provide such an objective, assigning to every complete trajectory a physical cost whose main term, for a diffusion, accumulates how far the velocity departs from the drift.</p>
     <p class="justified">In many applications, however, the action is unknown and we observe trajectories from simulation or experiment, such as molecular simulation traces, robot trajectories, policy rollouts or logs of a stochastic process. Learned methods typically fit a one step predictor or a trajectory generator to such data, while downstream trajectory inference calls for a reusable objective on complete paths. We call the task of recovering an evaluable action from trajectory samples <b>action learning</b>, and the central idea of this work is to treat the action itself as the object to learn, so that one learned action can rank, optimize, steer and sample paths long after training.</p>
     <figure>
       <div class="figure-pair">
-        <div><img src="static/figures/fig1a_local.png" alt="Local dynamics learning, with paths assembled from local transitions between basins A and B." width="1400" height="481"><p class="sub"><b>(a) Local dynamics learning</b> from transition laws</p></div>
-        <div><img src="static/figures/fig1b_global.png" alt="Trajectory action learning, with complete paths from A to B compared as wholes." width="1400" height="529"><p class="sub"><b>(b) Trajectory action learning</b> from complete paths</p></div>
+        <div><img src="static/figures/fig1a_local.svg" alt="Local dynamics learning, with paths assembled from local transitions between basins A and B." width="1400" height="481"><p class="sub"><b>(a) Local dynamics learning</b> from transition laws</p></div>
+        <div><img src="static/figures/fig1b_global.svg" alt="Trajectory action learning, with complete paths from A to B compared as wholes." width="1400" height="529"><p class="sub"><b>(b) Trajectory action learning</b> from complete paths</p></div>
       </div>
     </figure>
   </div>
