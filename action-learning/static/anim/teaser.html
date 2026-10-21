@@ -37,7 +37,7 @@
   const k = W / ground.L, oy = 88;
   const X = (u) => u * ground.L * k;
   const Y = (h) => oy + (ground.y_ref - h * ground.L - ground.crop_top) * k;
-  Landscape.draw(st.bg, k, 0, oy);
+  Landscape.draw(st.bg, k, 0, oy, (H - oy) / k + 4);        // ground fills to the figure's bottom edge
 
   // Observed paths: Metropolis-Hastings samples of the toy dynamics between A and B, kept above the curve.
   // Reference paths: the reference LEAP was trained with, Brownian motion with the data's diffusion around randomly
