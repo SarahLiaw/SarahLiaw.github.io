@@ -31,13 +31,14 @@
   <div class="container">
     <h1 class="publication-title">Action Learning for Scientific Simulations</h1>
     <div class="publication-authors">
-      <span class="author-block"><a href="https://sarahliaw.github.io/">Sarah Liaw</a><sup>1</sup>,</span>
-      <span class="author-block"><a href="https://yuanqidu.github.io/">Yuanqi Du</a><sup>2</sup>,</span>
-      <span class="author-block"><a href="https://yilundu.github.io/">Yilun Du</a><sup>1</sup></span>
+      <span class="author-block"><a href="https://sarahliaw.github.io/">Sarah Liaw</a><sup>1,2</sup>,</span>
+      <span class="author-block"><a href="https://yuanqidu.github.io/">Yuanqi Du</a><sup>3</sup>,</span>
+      <span class="author-block"><a href="https://yilundu.github.io/">Yilun Du</a><sup>1,2</sup></span>
     </div>
     <div class="publication-authors">
-      <span class="author-block"><sup>1</sup>Harvard University</span>
-      <span class="author-block"><sup>2</sup>Microsoft Research New England</span>
+      <span class="author-block"><sup>1</sup>Kempner Institute</span>
+      <span class="author-block"><sup>2</sup>Harvard University</span>
+      <span class="author-block"><sup>3</sup>Microsoft Research New England</span>
     </div>
     <div class="publication-links">
       <a class="button" href="#" data-link="paper">
@@ -69,7 +70,7 @@
 <section class="section">
   <div class="narrow content">
     <h2 class="title">Abstract</h2>
-    <p class="justified">Understanding and controlling how systems evolve is central to science and engineering, where many problems are defined on trajectories rather than individual states. Existing learned methods often predict local dynamics or generate trajectories, while representative path inference, mechanism steering and constrained trajectory optimization require an objective on complete paths. We introduce LEAP (Learned Energy on Action Paths), which treats the stochastic action itself as the learning target and recovers it directly from trajectory samples. LEAP decomposes the unknown action to an evaluable reference process and learns the remaining path space correction from complete trajectories, yielding a differentiable objective on paths. Once learned, the same action can be reused for path ranking, representative path inference, mechanism tilting, constraints and sampling. Across stochastic transition, orbital and molecular systems, LEAP recovers physical drift from terminally selected trajectories, represents a nonadditive action correction induced by a persistent latent regime and reuses a fixed molecular action for completion, basin preferences, angular constraints and temperature transfer.</p>
+    <p class="justified">Understanding and controlling how systems evolve is central to science and engineering, where many problems require reasoning about complete trajectories. Existing approaches typically learn local dynamics or generate trajectories, but objectives constructed from individual transitions can miss dependencies across time, while generative models do not necessarily provide a tractable objective for evaluating and optimizing arbitrary paths. We study <i>action learning</i>, the problem of recovering a stochastic action from trajectory observations, yielding a common objective for reasoning about dynamical systems. We introduce LEAP (Learned Energy on Action Paths), which anchors the unknown action to a tractable reference process and learns the remaining correction by comparing complete observed trajectories with reference trajectories. This construction yields a differentiable objective on path space that can capture both local dynamical structure and nonadditive dependencies across time. Once learned, the same action can be reused for path ranking, representative path inference, mechanism steering, constraints and sampling. Across stochastic physical systems, many-body orbital dynamics and molecular simulations, LEAP recovers underlying dynamics, captures dependencies across trajectories and enables transfer across inference objectives and physical conditions. We show that action learning is a promising framework for turning trajectory observations into reusable objectives for scientific inference and control.</p>
   </div>
 </section>
 
@@ -81,7 +82,7 @@
     <figure>
       <div class="figure-pair">
         <div><img src="static/figures/fig1a_local.svg" alt="Local dynamics learning, with paths assembled from local transitions between basins A and B." width="1400" height="481"><p class="sub"><b>(a) Local dynamics learning</b> from transition laws</p></div>
-        <div><img src="static/figures/fig1b_global.svg" alt="Trajectory action learning, with complete paths from A to B compared as wholes." width="1400" height="529"><p class="sub"><b>(b) Trajectory action learning</b> from complete paths</p></div>
+        <div><img src="static/figures/fig1b_global.svg" alt="Action learning, with complete paths from A to B compared as wholes." width="1400" height="529"><p class="sub"><b>(b) Action learning</b> from complete paths</p></div>
       </div>
     </figure>
   </div>
@@ -133,7 +134,7 @@
   <div class="container content">
     <h3 class="title">Downstream Trajectory Inference</h3>
     <p class="justified">With the learned action in hand, each downstream question becomes a problem on path space. The same \(S_\theta\) ranks candidate paths, infers representative trajectories, incorporates mechanism preferences, imposes soft constraints and defines trajectory distributions, and preferences \(M_j\) and penalties \(C_\ell\) simply add to it,</p>
-    <div class="eq">\[ \pi(\Phi \mid c) \;\propto\; \exp\Big(-S_\theta(\Phi;c) + \sum_j \alpha_j M_j(\Phi) - \sum_\ell \lambda_\ell C_\ell(\Phi)\Big), \]</div>
+    <div class="eq">\[ \pi(\Phi \mid c) \;\propto\; \exp\Big(-S_\theta(\Phi;c) + \sum_j \gamma_j M_j(\Phi) - \sum_\ell \lambda_\ell C_\ell(\Phi)\Big), \]</div>
     <p class="justified">so each new request changes the inference problem without retraining the model, and an action within \(\varepsilon\) of the true one up to a constant keeps its minimizers within \(2\varepsilon\) of optimal under the true action.</p>
     <figure>
       <div class="figure-frame">
@@ -167,7 +168,7 @@
     <p class="justified">Next, we test the global path functional. An unobserved \(z \in \{-1, +1\}\), drawn once per path with equal probability, sets the solar mass of a 31 body system to \(m_\odot(1 + z\eta)\). Given \(z\) the path density factorizes over transitions, and marginalizing \(z\) gives the exact path log ratio relative to the nominal dynamics,</p>
     <div class="eq">\[ G^*(\Phi;c) \;=\; \sum_k m_k \;+\; \log\cosh\Big(\sum_k d_k\Big), \]</div>
     <p class="justified">where \(d_k = (\ell_{+1,k} - \ell_{-1,k})/2\) and \(m_k = (\ell_{+1,k} + \ell_{-1,k})/2 - \ell_{0,k}\) combine the per step log likelihoods \(\ell_{z,k}\) under \(z = +1\) and \(z = -1\) and \(\ell_{0,k}\) under the nominal dynamics, and \(A = \sum_k d_k\) is the path summary. Its mixed derivatives \(\partial^2 G^*/\partial d_i \partial d_j = \operatorname{sech}^2(A) > 0\) couple every pair of transitions, so no twice differentiable sum \(\sum_k g_k(d_k, m_k)\) of per step terms represents it wherever \(d_i\) and \(d_j\) vary independently.</p>
-    <p class="justified">LEAP-Local, which scores one transition at a time, stays at the constant prediction level with NRMSE 1.0013, while LEAP-Global, which sees the complete path and its sensitivity to the solar mass with \(z\) hidden, reaches 0.2280 and recovers \(\eta\) as \(1.02 \times 10^{-4}\) against the true \(1.04 \times 10^{-4}\). A complete path model without this sensitivity stays at 1.0000, so LEAP-Global needs both. The gap persists at 42 bodies and 256 transitions, where LEAP-Global reaches 0.1107 and LEAP-Local stays at 1.0015.</p>
+    <p class="justified">LEAP-Local, which scores one transition at a time, stays at the constant prediction level with NRMSE 1.0013, while LEAP-Global, which sees the complete path and its sensitivity to the solar mass with \(z\) hidden, reaches 0.228 and recovers \(\eta\) as \(1.02 \times 10^{-4}\) against the true \(1.04 \times 10^{-4}\). A complete path model without this sensitivity stays at 1.00000, so LEAP-Global needs both. The gap persists at 42 bodies and 256 transitions, where LEAP-Global reaches 0.111 and LEAP-Local stays at 1.0015.</p>
     <figure>
       <div class="figure-frame">
         <iframe src="static/anim/orbital.html" title="Recovering a nonadditive trajectory action" loading="lazy"></iframe>
@@ -180,7 +181,7 @@
 <section class="section" id="alanine" data-nav="experiments">
   <div class="container content">
     <h3 class="title">Reusing Learned Actions across Conditions and Objectives</h3>
-    <p class="justified">Finally, we reuse one learned action across conditions and objectives. We learn one action for alanine dipeptide in its backbone angles \((\phi, \psi)\) from reactive C7eq&nbsp;→&nbsp;C7ax trajectories simulated at 600&nbsp;K, a reduced description whose effective dynamics are not available in closed form. Keeping this action fixed, we complete paths from a few observed states and add basin preferences and angular constraints without retraining, and with a reference fit to 500&nbsp;K trajectories, the log ratio learned at 600&nbsp;K separates 500&nbsp;K paths from that reference on par with a model trained at 500&nbsp;K (within context AUROC 0.9579 against 0.9403).</p>
+    <p class="justified">Finally, we reuse one learned action across conditions and objectives. We learn one action for alanine dipeptide in its backbone angles \((\phi, \psi)\) from reactive C7eq&nbsp;→&nbsp;C7ax trajectories simulated at 600&nbsp;K, a reduced description whose effective dynamics are not available in closed form. Keeping this action fixed, we complete paths from a few observed states and add basin preferences and angular constraints without retraining, and with a reference fit to 500&nbsp;K trajectories, the log ratio learned at 600&nbsp;K separates 500&nbsp;K paths from that reference at least as well as a model trained at 500&nbsp;K (within context AUROC 0.9579 against 0.9403).</p>
     <figure>
       <div class="figure-frame">
         <iframe src="static/anim/alanine.html" title="Reuse of a fixed molecular action" loading="lazy"></iframe>
