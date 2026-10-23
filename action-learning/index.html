@@ -138,17 +138,17 @@
       </div>
       <figcaption>All four panels use one learned action. Dashed paths omit the added term, and the red disc can be dragged.</figcaption>
     </figure>
-    <p class="justified">The recipe needs only trajectory samples and a reference that can be sampled, has an evaluable path density and covers the data, so beyond the physical and molecular systems tested here it can extend to robot trajectories and logged agent rollouts, where a learned action can help analyze and steer behavior in science, robotics and planning.</p>
+    <p class="justified">This only requires trajectory samples and a reference that can be sampled, has an evaluable path density and covers the data, so beyond the physical and molecular systems tested here it can extend to robot trajectories and logged agent rollouts, where a learned action can help analyze and steer behavior in science, robotics and planning.</p>
   </div>
 </section>
 
 <section class="section" id="experiments" data-nav="experiments">
   <div class="container content">
     <h3 class="title">Recovering Dynamics under Terminal Selection</h3>
-    <p class="justified">We now test each construction in turn, starting with matched selection. When observed trajectories are kept only if they reach an event \(E\), and the reference is selected by the same event, the complete path log ratio changes only by a constant,</p>
+    <p class="justified">We first test matched selection. When observed trajectories are kept only if they reach an event \(E\), and the reference is selected by the same event, the complete path log ratio changes only by a constant,</p>
     <div class="eq eq-wide">\[ \log \frac{p_{\mathrm{data}}(\Phi \mid E, c)}{p_{\mathrm{ref}}(\Phi \mid E, c)} \;=\; \log \frac{p_{\mathrm{data}}(\Phi \mid c)}{p_{\mathrm{ref}}(\Phi \mid c)} \;+\; \log \frac{P_{\mathrm{ref}}(E \mid c)}{P_{\mathrm{data}}(E \mid c)}, \]</div>
     <div class="eq eq-narrow">\[ \begin{aligned} \log \frac{p_{\mathrm{data}}(\Phi \mid E, c)}{p_{\mathrm{ref}}(\Phi \mid E, c)} &= \log \frac{p_{\mathrm{data}}(\Phi \mid c)}{p_{\mathrm{ref}}(\Phi \mid c)} \\ &\quad + \log \frac{P_{\mathrm{ref}}(E \mid c)}{P_{\mathrm{data}}(E \mid c)}, \end{aligned} \]</div>
-    <p class="justified">while every one step transition is reshaped, with drift \(b + 2D\,\nabla \log h\) in continuous time for \(h(x,t) = P(E \mid X_t = x)\). In a double well with drift \(b(x) = x - x^3\), we keep only the paths from the left well that end near the right well. A cubic regression on their steps fits this selected drift even though its basis contains the exact drift, reaching drift MSE 0.7752, while LEAP compares the kept paths with a Brownian reference conditioned on the same window and recovers the original drift with MSE \(3.3 \times 10^{-4}\). The window matters because end states then vary within each context, while with both endpoints pinned the log ratio of a constant drift against zero drift is the same for every admissible path. With the learned potential fixed, LEAP also infers near optimal paths to the saddle at new horizons.</p>
+    <p class="justified">while every one step transition is reshaped. In a double well with drift \(b(x) = x - x^3\), we keep only the paths from the left well that end near the right well. A cubic regression on their steps fits the selected drift even though its basis contains the exact drift (drift MSE 0.7752), while LEAP, with a Brownian reference conditioned on the same window, recovers the original drift (MSE \(3.3 \times 10^{-4}\)). With the learned potential fixed, LEAP also infers near optimal paths to the saddle at new horizons.</p>
     <figure>
       <div class="figure-frame">
         <iframe src="static/anim/double_well.html" title="Recovering dynamics under terminal selection" loading="lazy"></iframe>
@@ -161,10 +161,9 @@
 <section class="section" id="orbital" data-nav="experiments">
   <div class="container content">
     <h3 class="title">Recovering a Nonadditive Trajectory Action</h3>
-    <p class="justified">Next, we test the global path functional. An unobserved \(z \in \{-1, +1\}\), drawn once per path with equal probability, sets the solar mass of a 31 body system to \(m_\odot(1 + z\eta)\). Given \(z\) the path density factorizes over transitions, and marginalizing \(z\) gives the exact path log ratio relative to the nominal dynamics,</p>
+    <p class="justified">Next, we test the global path functional. An unobserved \(z \in \{-1, +1\}\), drawn once per path, sets the solar mass of a 31 body system to \(m_\odot(1 + z\eta)\). Marginalizing \(z\) gives the exact path log ratio relative to the nominal dynamics,</p>
     <div class="eq">\[ G^*(\Phi;c) \;=\; \sum_k m_k \;+\; \log\cosh\Big(\sum_k d_k\Big), \]</div>
-    <p class="justified">where \(d_k = (\ell_{+1,k} - \ell_{-1,k})/2\) and \(m_k = (\ell_{+1,k} + \ell_{-1,k})/2 - \ell_{0,k}\) combine the per step log likelihoods \(\ell_{z,k}\) under \(z = +1\) and \(z = -1\) and \(\ell_{0,k}\) under the nominal dynamics, and \(A = \sum_k d_k\) is the path summary. Its mixed derivatives \(\partial^2 G^*/\partial d_i \partial d_j = \operatorname{sech}^2(A) > 0\) couple every pair of transitions, so no twice differentiable sum \(\sum_k g_k(d_k, m_k)\) of per step terms represents it wherever \(d_i\) and \(d_j\) vary independently.</p>
-    <p class="justified">LEAP-Local, which scores one transition at a time, cannot capture this coupling. LEAP-Global sees the complete path, accounts for about 95% of the squared variation in exact path log ratio differences and recovers \(\eta\) as \(1.02 \times 10^{-4}\) against the true \(1.04 \times 10^{-4}\). The gap persists as the system grows to 42 bodies and 256 transitions.</p>
+    <p class="justified">where \(d_k\) and \(m_k\) combine the per step log likelihoods under \(z = \pm 1\) and the nominal dynamics, and \(A = \sum_k d_k\) is the path summary. The \(\log\cosh\) couples every pair of transitions, so no sum of per step terms can represent it. LEAP-Local, which scores one transition at a time, misses this coupling. LEAP-Global sees the complete path and recovers \(\eta\) as \(1.02 \times 10^{-4}\) against the true \(1.04 \times 10^{-4}\), and the gap persists at 42 bodies and 256 transitions.</p>
     <figure>
       <div class="figure-frame">
         <iframe src="static/anim/orbital.html" title="Recovering a nonadditive trajectory action" loading="lazy"></iframe>
@@ -177,7 +176,7 @@
 <section class="section" id="alanine" data-nav="experiments">
   <div class="container content">
     <h3 class="title">Reusing Learned Actions across Conditions and Objectives</h3>
-    <p class="justified">Finally, we reuse one learned action across conditions and objectives. We learn one action for alanine dipeptide in its backbone angles \((\phi, \psi)\) from reactive C7eq&nbsp;→&nbsp;C7ax trajectories simulated at 600&nbsp;K, a reduced description whose effective dynamics are not available in closed form. Keeping this action fixed, we complete paths from a few observed states and add basin preferences and angular constraints without retraining, and with a reference fit to 500&nbsp;K trajectories, the log ratio learned at 600&nbsp;K separates 500&nbsp;K paths from that reference at least as well as a model trained at 500&nbsp;K (within context AUROC 0.9579 against 0.9403).</p>
+    <p class="justified">Finally, we reuse one learned action across conditions and objectives. We learn one action for alanine dipeptide in its backbone angles \((\phi, \psi)\) from reactive C7eq&nbsp;→&nbsp;C7ax trajectories simulated at 600&nbsp;K, a reduced description whose effective dynamics are not available in closed form. Keeping this action fixed, we complete paths from a few observed states and add basin preferences and angular constraints without retraining, and with a reference fit to 500&nbsp;K trajectories, the log ratio learned at 600&nbsp;K separates 500&nbsp;K paths from that reference at least as well as a model trained at 500&nbsp;K.</p>
     <figure>
       <div class="figure-frame">
         <iframe src="static/anim/alanine.html" title="Reuse of a fixed molecular action" loading="lazy"></iframe>
