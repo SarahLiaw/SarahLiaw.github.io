@@ -34,6 +34,8 @@
   // ---- shared captions
   const cap1 = rich(svg, 16, 32, '', { class: 'cap cap-em' });
   const cap2 = rich(svg, 16, 56, '', { class: 'cap' });
+  const VIDEO = Fig.query('video', 0) === 1;      // ?video=1: one short caption for social clips
+  if (VIDEO) { cap1.style.fontSize = '24px'; document.getElementById('controls').style.display = 'none'; }
   const views = { drift: el('g', {}, svg) };
 
   // ---- view 1: selected trajectories, U(x), drift b(x)
@@ -93,8 +95,11 @@
     view = key; t = 0;
     {
       kept = 0; simulated = 0; shown.length = 0;
-      setRich(cap1, 'We keep the paths from −1 that end between 0.9 and 1.1 at time 3.');
-      setRich(cap2, 'LEAP compares them with a Brownian reference conditioned on the same window and recovers the drift.');
+      if (VIDEO) { setRich(cap1, 'Keep only the paths that reach B. LEAP still recovers the true drift.'); cap2.textContent = ''; }
+      else {
+        setRich(cap1, 'We keep the paths from −1 that end between 0.9 and 1.1 at time 3.');
+        setRich(cap2, 'LEAP compares them with a Brownian reference conditioned on the same window and recovers the drift.');
+      }
     }
     draw();
   }

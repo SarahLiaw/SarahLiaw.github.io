@@ -29,6 +29,8 @@
 
   const cap1 = rich(svg, 16, 86, '', { class: 'cap cap-em' });
   const cap2 = rich(svg, 16, 110, '', { class: 'cap' });
+  const VIDEO = Fig.query('video', 0) === 1;      // ?video=1: one short caption per tab for social clips
+  if (VIDEO) { cap1.style.fontSize = '24px'; document.getElementById('controls').style.display = 'none'; }
   const M = { x: 70, y: 136, s: 314 };     // map square
   const ax = axes(svg, { x: M.x, y: M.y, w: M.s, h: M.s, xlim: [-180, 180], ylim: [-180, 180], xticks: [-90, 0, 90], yticks: [-90, 0, 90],
     xlabel: '\\i{ϕ} (degrees)', ylabel: '\\i{ψ} (degrees)', ylabelGap: 44 });
@@ -54,12 +56,15 @@
 
   const TABS = [
     { key: 'a', name: 'Completion',
+      v: 'One learned action fills in a path from its endpoints and 3 frames.',
       c1: 'LEAP completes the path from endpoints and three interior observations.',
       c2: 'We train LEAP only on complete trajectories and specify the observed states only at inference.' },
     { key: 'b', name: 'Preference Weight',
+      v: 'Adding a basin preference reroutes the path, with no retraining.',
       c1: 'Increasing the basin preference raises \\i{M} from 0.23 to 0.81 for the shown path.',
       c2: 'We minimize \\i{S}_{\\i{θ}}(\\i{Φ}) − \\i{λM}(\\i{Φ}) with the same learned 600 K action.' },
     { key: 'c', name: 'Bound and Preference',
+      v: 'Adding an angle bound |\\i{ϕ}| ≤ 150° changes the route.',
       c1: 'Adding |\\i{ϕ}| ≤ 150° changes the route while preserving the terminal condition.',
       c2: 'The preference only path enters the excluded angular region, while the constrained path stays within the bound.' },
   ];
@@ -92,7 +97,7 @@
         rich(numG, RP.x + 120, RP.y + 92 + 40 * i, b, { class: 'sub' });
       });
     } else if (key === 'b') {
-      rich(keyG, M.x, M.y + M.s + 62, 'Dots mark saved frames every 0.1 ps. The circle is the preferred region.', { class: 'tick' });
+      if (!VIDEO) rich(keyG, M.x, M.y + M.s + 62, 'Dots mark saved frames every 0.1 ps. The circle is the preferred region.', { class: 'tick' });
     } else {
       legend(keyG, M.x, M.y + M.s + 62, [['dash', F7.white, 'Preference only'], ['line', F7.leap, 'Both']], { widths: [150, 60] });
     }
@@ -102,8 +107,8 @@
     if (TABS[i].key === 'b') lam = '0';
     if (TABS[i].key === 'c') which = 'bound_preference_20';
     tabBtns.forEach((b, j) => b.setAttribute('aria-selected', j === i ? 'true' : 'false'));
-    setRich(cap1, TABS[i].c1);
-    setRich(cap2, TABS[i].c2);
+    setRich(cap1, VIDEO ? TABS[i].v : TABS[i].c1);
+    if (VIDEO) cap2.textContent = ''; else setRich(cap2, TABS[i].c2);
     refresh();
     draw();
   }

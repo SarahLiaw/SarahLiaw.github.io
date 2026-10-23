@@ -31,7 +31,12 @@
   const DAYS = 32, TRAVEL = 8, HOLD = 3, DUR = TRAVEL + HOLD;
   const AL = [-7.6, 7.6], AT = [-6, -3, 0, 3, 6];
 
-  rich(svg, 16, 32, 'The hidden \\i{z} acts on every step, so the path log ratio depends on the whole path through \\i{A}.', { class: 'cap cap-em' });
+  const VIDEO = Fig.query('video', 0) === 1;      // ?video=1: short captions for social clips
+  if (VIDEO) {
+    rich(svg, 16, 30, 'A hidden change in the Sun\u2019s mass builds up over the whole orbit.', { class: 'cap cap-em' }).style.fontSize = '24px';
+    rich(svg, 16, 58, 'LEAP-Global scores the whole path at once and follows the exact log ratio.', { class: 'cap' }).style.fontSize = '19px';
+    document.getElementById('controls').style.display = 'none';
+  } else rich(svg, 16, 32, 'The hidden \\i{z} acts on every step, so the path log ratio depends on the whole path through \\i{A}.', { class: 'cap cap-em' });
 
   // Left: inner planets of the highlighted held out path (heliocentric, Earth's orbital plane).
   const SS = { cx: 120, cy: 290, s: 85 };       // pixels per AU
