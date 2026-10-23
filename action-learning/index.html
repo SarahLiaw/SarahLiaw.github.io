@@ -145,10 +145,10 @@
 <section class="section" id="experiments" data-nav="experiments">
   <div class="container content">
     <h3 class="title">Recovering Dynamics under Terminal Selection</h3>
-    <p class="justified">We first test matched selection. When observed trajectories are kept only if they reach an event \(E\), and the reference is selected by the same event, the complete path log ratio changes only by a constant,</p>
+    <p class="justified">We first study whether LEAP can recover underlying dynamics from trajectories selected according to their final states. When observed and reference trajectories are conditioned on the same event \(E\), their path log density ratio differs from the original ratio only by a constant,</p>
     <div class="eq eq-wide">\[ \log \frac{p_{\mathrm{data}}(\Phi \mid E, c)}{p_{\mathrm{ref}}(\Phi \mid E, c)} \;=\; \log \frac{p_{\mathrm{data}}(\Phi \mid c)}{p_{\mathrm{ref}}(\Phi \mid c)} \;+\; \log \frac{P_{\mathrm{ref}}(E \mid c)}{P_{\mathrm{data}}(E \mid c)}, \]</div>
     <div class="eq eq-narrow">\[ \begin{aligned} \log \frac{p_{\mathrm{data}}(\Phi \mid E, c)}{p_{\mathrm{ref}}(\Phi \mid E, c)} &= \log \frac{p_{\mathrm{data}}(\Phi \mid c)}{p_{\mathrm{ref}}(\Phi \mid c)} \\ &\quad + \log \frac{P_{\mathrm{ref}}(E \mid c)}{P_{\mathrm{data}}(E \mid c)}, \end{aligned} \]</div>
-    <p class="justified">while every one step transition is reshaped. In a double well with drift \(b(x) = x - x^3\), we keep only the paths from the left well that end near the right well. A cubic regression on their steps fits the selected drift even though its basis contains the exact drift (drift MSE 0.7752), while LEAP, with a Brownian reference conditioned on the same window, recovers the original drift (MSE \(3.3 \times 10^{-4}\)). With the learned potential fixed, LEAP also infers near optimal paths to the saddle at new horizons.</p>
+    <p class="justified">although conditioning changes the local transition distributions. We demonstrate this in a double well system with drift \(b(x) = x - x^3\), using trajectories that start in the left well and end near the right well. Cubic regression learns the modified local dynamics despite containing the true drift in its function class, resulting in drift MSE 0.7752. In contrast, LEAP uses a Brownian reference conditioned on the same final region and recovers the original drift with MSE \(3.3 \times 10^{-4}\). The learned action also supports path inference under new endpoints and horizons without retraining.</p>
     <figure>
       <div class="figure-frame">
         <iframe src="static/anim/double_well.html" title="Recovering dynamics under terminal selection" loading="lazy"></iframe>
@@ -161,9 +161,9 @@
 <section class="section" id="orbital" data-nav="experiments">
   <div class="container content">
     <h3 class="title">Recovering a Nonadditive Trajectory Action</h3>
-    <p class="justified">Next, we test the global path functional. An unobserved \(z \in \{-1, +1\}\), drawn once per path, sets the solar mass of a 31 body system to \(m_\odot(1 + z\eta)\). Marginalizing \(z\) gives the exact path log ratio relative to the nominal dynamics,</p>
-    <div class="eq">\[ G^*(\Phi;c) \;=\; \sum_k m_k \;+\; \log\cosh\Big(\sum_k d_k\Big), \]</div>
-    <p class="justified">where \(d_k\) and \(m_k\) combine the per step log likelihoods under \(z = \pm 1\) and the nominal dynamics, and \(A = \sum_k d_k\) is the path summary. The \(\log\cosh\) couples every pair of transitions, so no sum of per step terms can represent it. LEAP-Local, which scores one transition at a time, misses this coupling. LEAP-Global sees the complete path and recovers \(\eta\) as \(1.02 \times 10^{-4}\) against the true \(1.04 \times 10^{-4}\), and the gap persists at 42 bodies and 256 transitions.</p>
+    <p class="justified">Next, we test whether LEAP can capture dependencies that extend across multiple transitions. In a 31 body orbital system, an unobserved variable \(z \in \{-1, +1\}\) is sampled once per trajectory and determines the solar mass \(m_\odot(1 + z\eta)\). Marginalizing this variable produces an exact path correction,</p>
+    <div class="eq">\[ G^*(\Phi;c) \;=\; \sum_k m_k \;+\; \log\cosh A, \qquad A = \sum_k d_k, \]</div>
+    <p class="justified">that contains a nonlinear interaction between transitions. This correction cannot be represented as a sum of individual transition terms. LEAP-Local therefore cannot represent the exact correction, while LEAP-Global uses information from the entire trajectory and recovers the mass perturbation as \(1.02 \times 10^{-4}\), compared with the true value \(1.04 \times 10^{-4}\). The advantage of the global model persists for larger systems with up to 42 bodies and 256 transitions.</p>
     <figure>
       <div class="figure-frame">
         <iframe src="static/anim/orbital.html" title="Recovering a nonadditive trajectory action" loading="lazy"></iframe>
