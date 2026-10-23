@@ -17,8 +17,8 @@ bibtex: |
   }
 venue: "arXiv preprint"
 tldr: "Learn the stochastic action of a system directly from trajectory samples, then reuse it for path inference, mechanism steering, constraints and sampling."
-arxiv: https://arxiv.org/abs/2610.31585v1
-website: https://sarahliaw.github.io/action-learning/
+paper: https://arxiv.org/abs/2610.31585v1
+blog: https://sarahliaw.github.io/action-learning/
 code: https://github.com/SarahLiaw/action-learning
 ---
 
