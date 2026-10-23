@@ -2,7 +2,7 @@
 layout: post
 title:  "Action Learning for Scientific Simulations"
 date:   2026-10-22 00:00:00 +00:00
-image: images/action-learning.png
+image: images/action-learning-double-well.png
 categories: research
 authors: "<strong>Sarah Liaw</strong>, Yuanqi Du, Yilun Du"
 bibtex: |
