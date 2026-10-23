@@ -6,14 +6,14 @@ image: images/action-learning.png
 categories: research
 authors: "<strong>Sarah Liaw</strong>, Yuanqi Du, Yilun Du"
 bibtex: |
-  @misc{liaw2026action,
-      title={Action Learning for Scientific Simulations}, 
-      author={Sarah Liaw and Yuanqi Du and Yilun Du},
-      year={2026},
-      eprint={2610.31585},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG},
-      url={https://arxiv.org/abs/2610.31585}, 
+  @misc{liaw2026actionlearningscientificsimulations,
+        title={Action Learning for Scientific Simulations},
+        author={Sarah Liaw and Yuanqi Du and Yilun Du},
+        year={2026},
+        eprint={2610.31585},
+        archivePrefix={arXiv},
+        primaryClass={cs.LG},
+        url={https://arxiv.org/abs/2610.31585},
   }
 venue: "arXiv preprint"
 tldr: "Learn the stochastic action of a system directly from trajectory samples, then reuse it for path inference, mechanism steering, constraints and sampling."
