@@ -67,7 +67,7 @@
   function crossing(q, xy, n, alpha) {
     if (!VIDEO) return;
     crossRuns(q).forEach(([a, b]) => { const i0 = Math.max(a - 1, 0), i1 = Math.min(b + 1, n);
-      if (i1 - i0 >= 2) polyline(ctx0(), xy[0].subarray(i0, i1), xy[1].subarray(i0, i1), i1 - i0, { color: 'rgba(240,170,20,0.6)', width: 8, alpha }); });
+      if (i1 - i0 >= 2) polyline(ctx0(), xy[0].subarray(i0, i1), xy[1].subarray(i0, i1), i1 - i0, { color: 'rgba(240,170,20,0.45)', width: 5, alpha }); });
   }
   // Stage 2, as in training: one complete observed path against K reference paths with the same endpoints.
   const batches = [];
@@ -78,6 +78,28 @@
   const repSeed = dips[1];
   function resetRep() { rep = Float64Array.from(repSeed); opt = {}; repXY = toXY(rep); }
   resetRep();
+  // video mode: color paths by the learned action on a log scale, from the observed paths (blue) to the deepest crossing (red)
+  const SCORE_T0 = 12;
+  const scoreObs = [0, 4, 8, 13].map((i) => TL.S(data[i]));
+  const scoreRef = firstRefQ.map((q) => TL.S(q));
+  const sLo = Math.log(Math.min(...scoreObs));
+  const sHi = Math.log(Math.max(...scoreRef));
+  const RAMP = [[0, 29, 200], [128, 34, 118], [210, 0, 0]];      // P.action, low to high
+  function actionColor(S) {
+    const x = clamp((Math.log(S) - sLo) / (sHi - sLo)), k = x < 0.5 ? 0 : 1, f = (x - 0.5 * k) / 0.5;
+    return 'rgb(' + RAMP[k].map((v, i) => Math.round(v + (RAMP[k + 1][i] - v) * f)).join(',') + ')';
+  }
+  function legend(alpha) {
+    const c = st.ctx, x0 = W - 250, x1 = W - 40, y = 44;
+    c.save(); c.globalAlpha = alpha;
+    const g = c.createLinearGradient(x0, 0, x1, 0);
+    RAMP.forEach((v, i) => g.addColorStop(i / 2, 'rgb(' + v.join(',') + ')'));
+    c.fillStyle = g; c.fillRect(x0, y, x1 - x0, 10);
+    c.fillStyle = '#4b5263'; c.font = '500 17px "Google Sans", sans-serif'; c.textBaseline = 'top';
+    c.textAlign = 'left'; c.fillText('likely', x0, y + 16);
+    c.textAlign = 'right'; c.fillText('unlikely', x1, y + 16);
+    c.restore();
+  }
 
   const svg = st.svg;
   const ctx0 = () => st.ctx;
@@ -152,10 +174,19 @@
       const u = t - STAGES[1].t0, per = 1.3, bi = Math.floor(u / per) % batches.length, ph = (u % per) / per;
       const a = Math.min(smooth(ph / 0.12), 1 - smooth((ph - 0.88) / 0.12));
       const bt = batches[bi];
-      bt.refs.forEach((r) => { crossing(r.q, r.xy, r.xy[0].length, a); polyline(ctx, r.xy[0], r.xy[1], r.xy[0].length, Object.assign({}, REF, { alpha: 0.95 * a })); });
-      polyline(ctx, bt.obs[0], bt.obs[1], bt.obs[0].length, { color: P.data, width: 2.4, alpha: a, halo: 'rgba(255,255,255,.9)' });
-      aObs = 1; aRef = 1;
-      caption(VIDEO ? 'LEAP compares whole paths.' : 'LEAP learns the path log ratio \\i{G}_{\\i{θ}}(\\i{Φ}; \\i{c}) from complete paths.', '');
+      if (VIDEO && t >= SCORE_T0) {
+        // the learned action scores the paths of the first step, blue for low action and red for high
+        const f = smooth((t - SCORE_T0) / 0.9);
+        firstRefs.forEach((xy, i) => polyline(ctx, xy[0], xy[1], xy[0].length, Object.assign({}, REF, { color: actionColor(scoreRef[i]), width: 2.1, alpha: f })));
+        firstData.forEach((xy, i) => polyline(ctx, xy[0], xy[1], xy[0].length, { color: actionColor(scoreObs[i]), width: 2.1, alpha: f }));
+        legend(f);
+        caption('The learned action scores each path.', '');
+      } else {
+        bt.refs.forEach((r) => { if (!VIDEO) crossing(r.q, r.xy, r.xy[0].length, a); polyline(ctx, r.xy[0], r.xy[1], r.xy[0].length, Object.assign({}, REF, { alpha: 0.95 * a })); });
+        polyline(ctx, bt.obs[0], bt.obs[1], bt.obs[0].length, { color: P.data, width: 2.4, alpha: a, halo: 'rgba(255,255,255,.9)' });
+        aObs = 1; aRef = 1;
+        caption(VIDEO ? 'LEAP compares whole paths.' : 'LEAP learns the path log ratio \\i{G}_{\\i{θ}}(\\i{Φ}; \\i{c}) from complete paths.', '');
+      }
     } else {
       const u = t - STAGES[2].t0;
       if (u > 0.8 && u < 5) {
@@ -167,8 +198,8 @@
       const d0 = toXY(repSeed);
       crossing(repSeed, d0, d0[0].length, 1 - g);
       polyline(ctx, d0[0], d0[1], d0[0].length, Object.assign({}, REF, { width: VIDEO ? 1.6 : 1.3, alpha: VIDEO ? 0.7 : 0.55 }));
-      polyline(ctx, repXY[0], repXY[1], repXY[0].length, { color: P.action[0], width: 1.6 + 1.2 * g, halo: 'rgba(255,255,255,.85)' });
-      if (VIDEO) caption('The learned action lifts the path out.', '');
+      polyline(ctx, repXY[0], repXY[1], repXY[0].length, { color: VIDEO ? actionColor(TL.S(rep)) : P.action[0], width: VIDEO ? 2.4 + 0.6 * g : 1.6 + 1.2 * g, halo: 'rgba(255,255,255,.85)' });
+      if (VIDEO) { legend(1); caption('Lowering the action lifts the path out.', ''); }
       else caption('Combining it with the reference action gives the learned action \\i{S}_{\\i{θ}}(\\i{Φ}; \\i{c}).',
         'Minimizing \\i{S}_{\\i{θ}} from a reference path that grazes the barrier lifts it onto the representative trajectory.');
     }
