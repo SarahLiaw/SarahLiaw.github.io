@@ -56,10 +56,22 @@
   const toXY = (p) => { const n = p.length / 2, xs = new Float64Array(n), ys = new Float64Array(n);
     for (let i = 0; i < n; i++) { xs[i] = X(p[2 * i]); ys[i] = Y(p[2 * i + 1]); } return [xs, ys]; };
   const firstData = [0, 4, 8, 13].map((i) => toXY(data[i]));
-  const firstRefs = [dips[0], high[0] || over[0], dips[1], over[0] === high[0] ? over[1] : over[0]].map(toXY);
+  const firstRefQ = [dips[0], high[0] || over[0], dips[1], over[0] === high[0] ? over[1] : over[0]];
+  const firstRefs = firstRefQ.map(toXY);
+  // ?video=1: the clip for social posts, with one short caption per step and the barrier crossings highlighted
+  const VIDEO = Fig.query('video', 0) === 1;
+  const REF = VIDEO ? { color: '#4b5263', width: 1.9, dash: [6, 4] } : { color: P.ref, width: 1.4, dash: [5, 3.5] };
+  const crossRuns = (q) => { const runs = []; let a = -1;
+    for (let i = 0; i <= N; i++) { const b = q[2 * i + 1] < T.ground_h(q[2 * i]); if (b && a < 0) a = i; if (!b && a >= 0) { runs.push([a, i]); a = -1; } }
+    if (a >= 0) runs.push([a, N]); return runs; };
+  function crossing(q, xy, n, alpha) {
+    if (!VIDEO) return;
+    crossRuns(q).forEach(([a, b]) => { const i0 = Math.max(a - 1, 0), i1 = Math.min(b + 1, n);
+      if (i1 - i0 >= 2) polyline(ctx0(), xy[0].subarray(i0, i1), xy[1].subarray(i0, i1), i1 - i0, { color: 'rgba(240,170,20,0.6)', width: 8, alpha }); });
+  }
   // Stage 2, as in training: one complete observed path against K reference paths with the same endpoints.
   const batches = [];
-  for (let bi = 0; bi < 6; bi++) batches.push({ obs: toXY(data[(bi * 5 + 2) % data.length]), refs: [0, 1, 2, 3].map(() => toXY(refPath())) });
+  for (let bi = 0; bi < 6; bi++) batches.push({ obs: toXY(data[(bi * 5 + 2) % data.length]), refs: [0, 1, 2, 3].map(() => { const q = refPath(); return { q, xy: toXY(q) }; }) });
 
   // Stage 3: descend the learned action from one reference path.
   let rep, repXY, opt = {};
@@ -68,11 +80,19 @@
   resetRep();
 
   const svg = st.svg;
+  const ctx0 = () => st.ctx;
   const cap1 = rich(svg, 16, 84, '', { class: 'cap cap-em' });
   const cap2 = rich(svg, 16, 108, '', { class: 'cap' });
   const lab = el('g', {}, svg);
   const tagRef = rich(lab, 0, 0, 'reference paths', { class: 'tick halo', 'text-anchor': 'middle', fill: P.ref });
   const tagObs = rich(lab, 0, 0, 'observed paths', { class: 'tick halo', 'text-anchor': 'middle', fill: P.data });
+  if (Fig.query('video', 0) === 1) {
+    cap1.setAttribute('y', 58); cap1.style.fontSize = '30px';
+    [tagRef, tagObs].forEach((g) => { g.style.fontSize = '20px'; g.style.fontWeight = '500'; });
+    tagRef.style.fill = '#4b5263'; tagObs.style.fill = P.data;
+    document.getElementById('chips').style.display = 'none';
+    document.getElementById('controls').style.display = 'none';
+  }
 
   const STAGES = [
     { name: 'Reference Paths', t0: 0 },
@@ -119,21 +139,23 @@
         const f = clamp((t - 4.1 - 0.5 * i) / 1.8);
         if (f <= 0) return;
         const n = partial(xy, smooth(f));
-        polyline(ctx, xy[0], xy[1], n, { color: P.ref, width: 1.4, dash: [5, 3.5] });
-        if (f < 1) dot(ctx, xy[0][n - 1], xy[1][n - 1], 3.4, P.ref, '#fff', 1);
+        crossing(firstRefQ[i], xy, n, 1);
+        polyline(ctx, xy[0], xy[1], n, REF);
+        if (f < 1) dot(ctx, xy[0][n - 1], xy[1][n - 1], 3.4, REF.color, '#fff', 1);
       });
       aRef = smooth((t - 5.6) / 0.6);
-      if (t < 4.1) caption('We observe trajectories from simulation, which climb over the barrier from A to B.',
+      if (VIDEO) caption(t < 4.1 ? 'Observed paths cross the barrier.' : 'Reference paths ignore it.', '');
+      else if (t < 4.1) caption('We observe trajectories from simulation, which climb over the barrier from A to B.',
         'LEAP never sees the dynamics behind these samples.');
       else caption('The reference is Brownian motion spread around the average observed path.', '');
     } else if (s === 1) {
       const u = t - STAGES[1].t0, per = 1.3, bi = Math.floor(u / per) % batches.length, ph = (u % per) / per;
       const a = Math.min(smooth(ph / 0.12), 1 - smooth((ph - 0.88) / 0.12));
       const bt = batches[bi];
-      bt.refs.forEach((xy) => polyline(ctx, xy[0], xy[1], xy[0].length, { color: P.ref, width: 1.4, dash: [5, 3.5], alpha: 0.95 * a }));
+      bt.refs.forEach((r) => { crossing(r.q, r.xy, r.xy[0].length, a); polyline(ctx, r.xy[0], r.xy[1], r.xy[0].length, Object.assign({}, REF, { alpha: 0.95 * a })); });
       polyline(ctx, bt.obs[0], bt.obs[1], bt.obs[0].length, { color: P.data, width: 2.4, alpha: a, halo: 'rgba(255,255,255,.9)' });
       aObs = 1; aRef = 1;
-      caption('LEAP learns the path log ratio \\i{G}_{\\i{θ}}(\\i{Φ}; \\i{c}) from complete paths.', '');
+      caption(VIDEO ? 'LEAP compares whole paths.' : 'LEAP learns the path log ratio \\i{G}_{\\i{θ}}(\\i{Φ}; \\i{c}) from complete paths.', '');
     } else {
       const u = t - STAGES[2].t0;
       if (u > 0.8 && u < 5) {
@@ -143,9 +165,11 @@
       }
       const g = smooth((u - 0.8) / 3.2);
       const d0 = toXY(repSeed);
-      polyline(ctx, d0[0], d0[1], d0[0].length, { color: P.ref, width: 1.3, dash: [5, 3.5], alpha: 0.55 });
+      crossing(repSeed, d0, d0[0].length, 1 - g);
+      polyline(ctx, d0[0], d0[1], d0[0].length, Object.assign({}, REF, { width: VIDEO ? 1.6 : 1.3, alpha: VIDEO ? 0.7 : 0.55 }));
       polyline(ctx, repXY[0], repXY[1], repXY[0].length, { color: P.action[0], width: 1.6 + 1.2 * g, halo: 'rgba(255,255,255,.85)' });
-      caption('Combining it with the reference action gives the learned action \\i{S}_{\\i{θ}}(\\i{Φ}; \\i{c}).',
+      if (VIDEO) caption('The learned action lifts the path out.', '');
+      else caption('Combining it with the reference action gives the learned action \\i{S}_{\\i{θ}}(\\i{Φ}; \\i{c}).',
         'Minimizing \\i{S}_{\\i{θ}} from a reference path that grazes the barrier lifts it onto the representative trajectory.');
     }
     tag(tagObs, X(0.36), Y(0.17), aObs * (s < 2 ? 1 : 0));
