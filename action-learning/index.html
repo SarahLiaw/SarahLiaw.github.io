@@ -73,8 +73,8 @@
 <section class="section" id="intro">
   <div class="container content">
     <h3 class="title">From Trajectory Samples to Path Inference</h3>
-    <p class="justified">Many scientific questions are questions about whole trajectories, such as which route a molecule takes between two conformations, which intermediates a transition passes through or which paths stay likely once we add a constraint, and answering them requires a way to evaluate and optimize complete paths. When the dynamics are known, physics provides exactly this object in the stochastic action, and the Onsager–Machlup action assigns every complete trajectory a cost whose minimizers are the most probable paths and whose main term, for a diffusion, accumulates how far the velocity departs from the drift.</p>
-    <p class="justified">In most applications the dynamics are unknown, and what we have are trajectories from simulation or experiment, such as molecular simulation traces, robot trajectories, policy rollouts or logs of a stochastic process. Learned models typically fit a one step predictor or a trajectory generator to such data, and while both can produce new paths, questions about which paths are likely call for an objective that evaluates and optimizes any complete path. We call the task of recovering such an evaluable action from trajectory samples <b>action learning</b>. Its premise is that the action is the natural object to learn from trajectory data, since once it is learned, ranking paths, finding the most likely transition, steering toward a mechanism and sampling paths all become problems on one fixed objective.</p>
+    <p class="justified">Many scientific questions concern whole trajectories, such as which route a molecule takes between two conformations, which intermediates a transition passes through or which paths stay likely once we add a constraint, and answering them requires a way to evaluate and optimize complete paths. When the dynamics are known, the Onsager–Machlup action provides exactly this, assigning every complete trajectory a cost whose minimizers are the most probable paths and whose main term, for a diffusion, accumulates how far the velocity departs from the drift.</p>
+    <p class="justified">In most applications the dynamics are unknown, and what we have are trajectories from simulation or experiment. Learned models typically fit a one step predictor or a trajectory generator to such data, which produce new paths and leave the cost of any given path implicit. We call the task of recovering such an evaluable action from trajectory samples <b>action learning</b>. Its premise is that the action is the natural object to learn from trajectory data, since once it is learned, every question about paths becomes a problem on one fixed objective.</p>
     <figure>
       <div class="figure-pair">
         <div><img src="static/figures/fig1a_local.svg" alt="Local dynamics learning, with paths assembled from local transitions between basins A and B." width="1400" height="481"><p class="sub"><b>(a) Local dynamics learning</b> from transition laws</p></div>
@@ -88,9 +88,9 @@
   <div class="container content">
     <h3 class="title">Learning Action Functionals from Trajectory Samples</h3>
     <h4 class="subtitle">Main Idea</h4>
-    <p class="justified">LEAP learns a differentiable stochastic action from trajectory samples and a reference process, without access to the drift, the potential or the simulator likelihood, so the data contain sample paths and no values of the action itself. Our approach rests on three observations about a discretized trajectory \(\Phi = (x_0, x_1, \dots, x_N)\) at times \(t_k = k\Delta t\), observed under a context \(c\) such as endpoints, a terminal region or a horizon.</p>
+    <p class="justified">LEAP learns the action from trajectory samples and a reference process alone, with no access to the drift, the potential or the simulator likelihood. Our approach rests on three observations about a discretized trajectory \(\Phi = (x_0, x_1, \dots, x_N)\) at times \(t_k = k\Delta t\), observed under a context \(c\) such as endpoints, a terminal region or a horizon.</p>
     <ol>
-      <li>Following Onsager–Machlup and Freidlin–Wentzell theory, we take the action of a trajectory to be its negative log path density, so lower action means higher probability and the minimizers are the most probable paths,
+      <li>Following Onsager–Machlup and Freidlin–Wentzell theory, we take the action of a trajectory to be its negative log path density, so lower action means higher probability,
         <div class="eq">\[ S^*(\Phi;c) \;=\; -\log p_{\mathrm{data}}(\Phi \mid c) \;+\; \alpha(c), \]</div> where \(\alpha(c)\) is constant across paths with the same context.</li>
       <li>A reference process such as Brownian motion has a path density we can evaluate and sample, so with \(S_{\mathrm{ref}} = -\log p_{\mathrm{ref}}\) the unknown action splits into a reference action we can compute and a path log ratio we must learn,
         <div class="eq">\[ S^*(\Phi;c) \;=\; \underbrace{S_{\mathrm{ref}}(\Phi;c)}_{\text{reference action}} \;-\; \underbrace{G^*(\Phi;c)}_{\log p_{\mathrm{data}}/p_{\mathrm{ref}}} \;+\; \alpha(c). \]</div></li>
@@ -98,7 +98,7 @@
     </ol>
     <p class="justified">Then, at a high level, LEAP draws one observed trajectory \(\Phi^+ \sim p_{\mathrm{data}}(\cdot \mid c)\) and \(K\) reference trajectories \(\Phi^-_k \sim p_{\mathrm{ref}}(\cdot \mid c)\) from the same context and trains \(G_\theta\) to pick out the observed one by minimizing the comparison objective</p>
     <div class="eq">\[ \mathcal{L}_K(\theta) \;=\; -\,\mathbb{E}\left[\log \frac{e^{G_\theta(\Phi^+;c)}}{e^{G_\theta(\Phi^+;c)} + \sum_{k=1}^{K} e^{G_\theta(\Phi^-_k;c)}}\right]. \]</div>
-    <p class="justified">When the candidates are drawn independently, the data and reference densities share their support and the model class contains \(G^*\), the objective is minimized exactly at \(G_\theta = G^* + a(c)\) for every \(K \ge 1\). Two properties of trajectory data shape how we choose the reference and parameterize \(G_\theta\), and the first two experiments below test each of them.</p>
+    <p class="justified">Two properties of trajectory data shape how we choose the reference and parameterize \(G_\theta\), and the first two experiments below test each of them.</p>
     <ul>
       <li>Trajectories are often selected by an event, such as reaching a target region, which reshapes every transition. We address this with matched selection and the Girsanov form.</li>
       <li>Some information persists along the whole path, such as a hidden physical parameter, which couples all transitions. We address this with a global path functional.</li>
@@ -107,7 +107,7 @@
     <p class="justified">To see why comparison recovers the action, consider what the optimal classifier computes. When the observed trajectory sits at a uniformly random index \(I\) among the \(K+1\) candidates, Bayes' rule gives a softmax over the true path log ratios,</p>
     <div class="eq eq-wide">\[ P(I = i \mid \Phi_{0:K}, c) \;=\; \frac{p_{\mathrm{data}}(\Phi_i \mid c)/p_{\mathrm{ref}}(\Phi_i \mid c)}{\sum_{\ell=0}^{K} p_{\mathrm{data}}(\Phi_\ell \mid c)/p_{\mathrm{ref}}(\Phi_\ell \mid c)} \;=\; \frac{e^{G^*(\Phi_i;c)}}{\sum_{\ell=0}^{K} e^{G^*(\Phi_\ell;c)}}. \]</div>
     <div class="eq eq-narrow">\[ \begin{aligned} P(I = i \mid \Phi_{0:K}, c) &= \frac{p_{\mathrm{data}}(\Phi_i \mid c)/p_{\mathrm{ref}}(\Phi_i \mid c)}{\sum_{\ell=0}^{K} p_{\mathrm{data}}(\Phi_\ell \mid c)/p_{\mathrm{ref}}(\Phi_\ell \mid c)} \\ &= \frac{e^{G^*(\Phi_i;c)}}{\sum_{\ell=0}^{K} e^{G^*(\Phi_\ell;c)}}. \end{aligned} \]</div>
-    <p class="justified">The objective is minimized when the model's softmax matches this posterior, which makes every difference of \(G_\theta\) between two paths of a context equal that of \(G^*\) and leaves one free constant per context. Centering under the reference fixes that constant, and at the optimum the learned action</p>
+    <p class="justified">When the candidates are drawn independently, the data and reference densities share their support and the model class contains \(G^*\), the objective is minimized exactly when the model's softmax matches this posterior, at \(G_\theta = G^* + a(c)\) for every \(K \ge 1\). Centering under the reference fixes the free constant, and the learned action</p>
     <div class="eq eq-wide">\[ S_\theta(\Phi;c) \;=\; -\log p_{\mathrm{ref}}(\Phi \mid c) \;-\; \tilde G_\theta(\Phi;c), \qquad \tilde G_\theta(\Phi;c) \;=\; G_\theta(\Phi;c) - \mathbb{E}_{\Phi' \sim p_{\mathrm{ref}}(\cdot \mid c)}\big[G_\theta(\Phi';c)\big], \]</div>
     <div class="eq eq-narrow">\[ \begin{aligned} S_\theta(\Phi;c) &= -\log p_{\mathrm{ref}}(\Phi \mid c) - \tilde G_\theta(\Phi;c), \\ \tilde G_\theta(\Phi;c) &= G_\theta(\Phi;c) - \mathbb{E}_{\Phi' \sim p_{\mathrm{ref}}(\cdot \mid c)}\big[G_\theta(\Phi';c)\big], \end{aligned} \]</div>
     <p class="justified">equals \(S^*\) up to a constant per context, which leaves path rankings, optimization solutions and Metropolis–Hastings ratios unchanged.</p>
@@ -122,7 +122,7 @@
     <h4 class="subtitle">Local and Global Path Functionals</h4>
     <p class="justified">The Girsanov form adds one term per transition, and LEAP-Local more generally learns a scalar term for each transition,</p>
     <div class="eq">\[ G^{\mathrm{local}}_\theta(\Phi;c) \;=\; \sum_{k=0}^{N-1} g_\theta(x_k, x_{k+1}, t_k; c). \]</div>
-    <p class="justified">This factorization can fail when information is shared across the trajectory, such as a hidden physical parameter fixed for the whole path, so LEAP-Global learns the path log ratio on the complete path, \(G^{\mathrm{global}}_\theta(\Phi;c) = r_\theta(\Phi;c)\). The orbital experiment below gives a case where the exact path log ratio has this global form.</p>
+    <p class="justified">When information persists along the whole path, this factorization can fail, so LEAP-Global learns the path log ratio on the complete path, \(G^{\mathrm{global}}_\theta(\Phi;c) = r_\theta(\Phi;c)\).</p>
   </div>
 </section>
 
@@ -162,7 +162,7 @@
     <h3 class="title">Recovering a Nonadditive Trajectory Action</h3>
     <p class="justified">Next, we test whether LEAP can capture dependencies that extend across multiple transitions. In a 31 body orbital system, an unobserved variable \(z \in \{-1, +1\}\) is sampled once per trajectory and determines the solar mass \(m_\odot(1 + z\eta)\). Marginalizing this variable produces an exact path correction,</p>
     <div class="eq">\[ G^*(\Phi;c) \;=\; \sum_k m_k \;+\; \log\cosh A, \qquad A = \sum_k d_k, \]</div>
-    <p class="justified">that contains a nonlinear interaction between transitions. This correction cannot be represented as a sum of individual transition terms. LEAP-Local therefore cannot represent the exact correction, while LEAP-Global uses information from the entire trajectory and recovers the mass perturbation as \(1.02 \times 10^{-4}\), compared with the true value \(1.04 \times 10^{-4}\). The advantage of the global model persists for larger systems with up to 42 bodies and 256 transitions.</p>
+    <p class="justified">that contains a nonlinear interaction between transitions and cannot be represented as a sum of individual transition terms. LEAP-Local therefore misses the exact correction, while LEAP-Global uses information from the entire trajectory and recovers the mass perturbation as \(1.02 \times 10^{-4}\), compared with the true value \(1.04 \times 10^{-4}\). The advantage of the global model persists for larger systems with up to 42 bodies and 256 transitions.</p>
     <figure>
       <div class="figure-frame">
         <iframe src="static/anim/orbital.html" title="Recovering a nonadditive trajectory action" loading="lazy"></iframe>
@@ -175,7 +175,7 @@
 <section class="section" id="alanine" data-nav="experiments">
   <div class="container content">
     <h3 class="title">Reusing Learned Actions across Conditions and Objectives</h3>
-    <p class="justified">Finally, we test whether one learned action can be reused across physical conditions and inference objectives. We learn one action for alanine dipeptide in its backbone angles \((\phi, \psi)\) from reactive C7eq&nbsp;→&nbsp;C7ax trajectories simulated at 600&nbsp;K, a reduced description whose effective dynamics are not available in closed form. Keeping this action fixed, we complete paths from a few observed states and add basin preferences and angular constraints without retraining. With a reference fit to 500&nbsp;K trajectories, the log ratio learned at 600&nbsp;K also separates 500&nbsp;K paths from that reference at least as well as a model trained at 500&nbsp;K.</p>
+    <p class="justified">Finally, we test whether one learned action can be reused across physical conditions and inference objectives. We learn this action for alanine dipeptide in its backbone angles \((\phi, \psi)\) from reactive C7eq&nbsp;→&nbsp;C7ax trajectories simulated at 600&nbsp;K, a reduced description whose effective dynamics are not available in closed form. Keeping this action fixed, we complete paths from a few observed states and add basin preferences and angular constraints. With a reference fit to 500&nbsp;K trajectories, the log ratio learned at 600&nbsp;K also separates 500&nbsp;K paths from that reference at least as well as a model trained at 500&nbsp;K.</p>
     <figure>
       <div class="figure-frame">
         <iframe src="static/anim/alanine.html" title="Reuse of a fixed molecular action" loading="lazy"></iframe>
@@ -188,11 +188,11 @@
 <section class="section">
   <div class="container content">
     <h3 class="title">Conclusion</h3>
-    <p class="justified">LEAP treats the stochastic action as a reusable learning target for trajectory data, and the experiments show what this buys, since comparing complete paths recovers the dynamics behind selected trajectories, captures dependencies that span the whole trajectory and yields one action that serves many inference problems. This only requires trajectory samples and a reference that can be sampled, has an evaluable path density and covers the data, so beyond the physical and molecular systems tested here it can extend to robot trajectories and logged agent rollouts, where a learned action can help analyze and steer behavior in science, robotics and planning. Looking forward, we hope action learning encourages a broader view of trajectory modeling that shifts the focus to learning reusable objectives over complete paths.</p>
+    <p class="justified">Treating the stochastic action as a reusable learning target lets LEAP recover the dynamics behind selected trajectories, capture dependencies that span the whole trajectory and serve many inference problems with one learned action. This only requires trajectory samples and a reference that can be sampled, has an evaluable path density and covers the data, so beyond the physical and molecular systems tested here it can extend to robot trajectories and logged agent rollouts, where a learned action can help analyze and steer behavior. Looking forward, we hope action learning encourages a broader view of trajectory modeling that shifts the focus to learning reusable objectives over complete paths.</p>
     <h4 class="subtitle">Limitations</h4>
     <ul>
       <li>LEAP requires overlap between the reference and the trajectory distribution, and poor overlap increases finite sample error.</li>
-      <li>The action is identified up to a constant within each context, so it ranks and optimizes paths within each context.</li>
+      <li>The action is identified up to a constant per context, so it ranks and optimizes paths within a context.</li>
       <li>The log ratio is learned where trajectories go, so inference far from the data relies on extrapolation.</li>
       <li>The Girsanov form is exact for Euler–Maruyama dynamics that share the diffusion, initial law and time grid, while state dependent diffusion needs more likelihood ratio terms.</li>
       <li>Projecting onto reduced coordinates can introduce memory and state dependent friction, so the learned action there is an effective one.</li>
