@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Partial Renoising for Conditional Multi-Modal Generation</title>
+  <meta name="description" content="Renoise-denoise updates a generated sample after its condition changes by renoising it to strength s and denoising it under the new condition, one training-free update for images, video, language and robot plans.">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans:400,500,700|Noto+Sans|Castoro">
+  <link rel="stylesheet" href="static/css/site.css">
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      svg: { fontCache: 'global' },
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"></script>
+</head>
+<body>
+
+<nav class="navbar" id="nav" aria-label="Sections">
+  <a href="#images">Images</a>
+  <a href="#method">Method</a>
+  <a href="#video">Video</a>
+  <a href="#language">Language</a>
+  <a href="#robotics">Robotics</a>
+  <a href="#BibTeX">BibTeX</a>
+</nav>
+
+<section class="hero" id="top">
+  <div class="container">
+    <h1 class="publication-title">Partial Renoising for Conditional Multi-Modal Generation</h1>
+    <div class="publication-authors">
+      <span class="author-block"><a href="https://emiletimothy.net">Emile Timothy Anand</a>,</span>
+      <span class="author-block"><a href="https://richardhoff88.github.io">Richard Hoffmann</a>,</span>
+      <span class="author-block"><a href="https://sarahliaw.github.io/">Sarah Liaw</a>,</span>
+      <span class="author-block"><a href="https://jakeabernethy.github.io">Jacob Abernethy</a>,</span>
+      <span class="author-block"><a href="https://faculty.cc.gatech.edu/~vdbrand/">Jan van den Brand</a></span>
+    </div>
+    <p class="tldr"><b>TLDR:</b> We introduce renoise-denoise for generative control, which updates a generated sample after its condition changes by renoising it to strength \(s\) and denoising it under the new condition, one training-free update for images, video, language and robot plans.</p>
+  </div>
+</section>
+
+<section class="section" id="images" data-nav="images" style="padding-top: .5rem">
+  <div class="container">
+    <figure>
+      <div class="viewer" id="imgViewer"></div>
+      <figcaption>Over 39 FLUX.1-dev edits, CLIP similarity to \(c'\) reaches 0.260 at \(s = 0.94\) against 0.279 for regeneration, with LPIPS to the source 0.45 against 0.66.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="section" id="method" data-nav="method">
+  <div class="container content">
+    <h3 class="title">Renoise-Denoise</h3>
+    <p class="justified">A pretrained model has produced a sample \(X\) under a condition \(c\), and the condition changes to \(c'\). Renoise-denoise renoises \(X\) to strength \(s\) and runs the sampler for \(c'\) from flow time \(1-s\),</p>
+    <div class="eq">\[ Y = (1-s)\,X + s\,\varepsilon, \qquad X' = \Phi^{c'}_{1-s\to 1}(Y), \]</div>
+    <p class="justified">so \(s = 0\) keeps \(X\) and \(s = 1\) regenerates. The strength trades accuracy, whether \(X'\) looks like a sample for \(c'\), against faithfulness, how far it moved from \(X\), and on a uniform timestep grid an edit costs an \(s\) fraction of the NFEs of full generation. The Wasserstein distance between \(p_c\) and \(p_{c'}\) governs how much noise an edit needs. Any nested renoising channel works, which covers Gaussian noise for images, video and robot plans and the erasure channel of a masked diffusion LM for text.</p>
+  </div>
+</section>
+
+<section class="section" id="video" data-nav="video">
+  <div class="container content">
+    <h3 class="title">Video Editing</h3>
+    <p class="justified">On LTX-Video, renoising acts on the 3D-VAE latent and the denoiser keeps the edited clip coherent. At the same noise level, renoise-denoise matches the conditioning swap's CLIP-T (0.247 against 0.242 at \(s = 0.909\)) while staying closer to the source (LPIPS 0.318 against 0.545).</p>
+    <figure>
+      <div class="viewer" id="vidViewer"></div>
+      <figcaption>The swap denoises under \(c\) down to the same noise level and continues under \(c'\).</figcaption>
+    </figure>
+    <h4 class="subtitle">Sequential Updates</h4>
+    <p class="justified">Each update renoises the previous clip to \(s = 0.975\) under the accumulated prompt with 6 NFEs, and regeneration samples every clip afresh with 10. LPIPS to the previous clip is 0.50 to 0.52 for renoise-denoise and 0.58 to 0.68 for regeneration.</p>
+    <figure>
+      <div class="viewer" id="streamViewer"></div>
+    </figure>
+  </div>
+</section>
+
+<section class="section" id="language" data-nav="language">
+  <div class="container content">
+    <h3 class="title">Language Editing</h3>
+    <p class="justified">LLaDA-8B is a masked diffusion LM, so its renoising channel erases each token with probability \(s\) and the model fills the masks under the new instruction. Raising \(s\) trades token F1 to the source (0.96 at \(s = 0.1\), 0.30 at \(s = 0.9\)) for the target sentiment probability (0.10 to 0.62).</p>
+    <figure>
+      <div class="viewer" id="langViewer"></div>
+      <figcaption>Words not in the source are in red.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="section" id="robotics" data-nav="robotics">
+  <div class="container content">
+    <h3 class="title">Policy Steering</h3>
+    <p class="justified">A Diffusion Policy executes a long open-loop plan on Lift when the cube is moved. Keeping the old plan succeeds in 37 of 50 episodes, and renoise-denoise at \(s = 0.2\) succeeds in 42 with 21 denoising steps, as many as a 100-step replan. On PushT all arms tie.</p>
+    <figure>
+      <div class="viewer robot" id="robotViewer"></div>
+      <figcaption>One episode. The new plan is issued two steps after the cube moves.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="section" id="BibTeX" data-nav="BibTeX">
+  <div class="container content">
+    <h2 class="title" style="text-align:left">BibTeX</h2>
+    <div class="bib">
+      <button class="copy" type="button" id="copyBib">Copy</button>
+<pre id="bibtex">@misc{anand2026partialrenoising,
+      title={Partial Renoising for Conditional Multi-Modal Generation},
+      author={Emile Timothy Anand and Richard Hoffmann and Sarah Liaw and Jacob Abernethy and Jan van den Brand},
+      year={2026},
+}</pre>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>This website template is borrowed from <a href="https://nerfies.github.io/">Nerfies</a>, licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
+  </div>
+</footer>
+
+<script src="static/data/images.js"></script>
+<script src="static/data/video.js"></script>
+<script src="static/data/streams.js"></script>
+<script src="static/data/lang.js"></script>
+<script src="static/data/robot.js"></script>
+<script src="static/js/viewers.js"></script>
+<script>
+  (function () {
+    var btn = document.getElementById('copyBib');
+    btn.addEventListener('click', function () {
+      var text = document.getElementById('bibtex').textContent;
+      var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1500); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { select(); });
+      } else { select(); }
+      function select() {
+        var r = document.createRange(); r.selectNodeContents(document.getElementById('bibtex'));
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = 'Selected';
+      }
+    });
+  })();
+  // content rises into view as it is reached
+  (function () {
+    if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var items = document.querySelectorAll('.section h2, .section h3, .section h4, .section p, .section figure, .section .eq, .section .bib');
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    items.forEach(function (el) { if (el.getBoundingClientRect().top > window.innerHeight) { el.classList.add('reveal'); io.observe(el); } });
+  })();
+  // the nav marks the section being read: the last one whose top has passed a third of the window
+  (function () {
+    var nav = document.getElementById('nav'), links = {}, sections = document.querySelectorAll('section[data-nav]');
+    nav.querySelectorAll('a[href^="#"]').forEach(function (a) { if (a.getAttribute('href').length > 1) links[a.getAttribute('href').slice(1)] = a; });
+    var queued = false;
+    function update() {
+      queued = false;
+      var key = null, line = window.innerHeight / 3;
+      sections.forEach(function (s) { if (s.getBoundingClientRect().top <= line) key = s.getAttribute('data-nav'); });
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) key = 'BibTeX';
+      for (var k in links) links[k].classList.toggle('active', k === key);
+      nav.classList.toggle('scrolled', window.scrollY > 8);
+    }
+    window.addEventListener('scroll', function () { if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  })();
+</script>
+</body>
+</html>
