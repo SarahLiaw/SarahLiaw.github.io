@@ -5,7 +5,7 @@
   <meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Partial Renoising for Conditional Multi-Modal Generation</title>
-  <meta name="description" content="Renoise-denoise updates a generated sample after its condition changes by renoising it to strength s and denoising it under the new condition, one training-free update for images, video, language and robot plans.">
+  <meta name="description" content="Renoise-denoise updates a generated sample after its condition changes by renoising it to strength s and denoising it under the new condition, with one formulation across images, video, language and robot plans.">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans:400,500,700|Noto+Sans|Castoro">
   <link rel="stylesheet" href="static/css/site.css">
   <script>
@@ -37,7 +37,7 @@
       <span class="author-block"><a href="https://jakeabernethy.github.io">Jacob Abernethy</a>,</span>
       <span class="author-block"><a href="https://faculty.cc.gatech.edu/~vdbrand/">Jan van den Brand</a></span>
     </div>
-    <p class="tldr"><b>TLDR:</b> We introduce renoise-denoise for generative control, which updates a generated sample after its condition changes by renoising it to strength \(s\) and denoising it under the new condition, one training-free update for images, video, language and robot plans.</p>
+    <p class="tldr"><b>TLDR:</b> Renoise-denoise updates a generated sample after its condition changes by renoising it to strength \(s\) and denoising it under the new condition. We give it one formulation across images, video, language and robot plans, where \(s\) trades accuracy against faithfulness.</p>
   </div>
 </section>
 
@@ -62,7 +62,7 @@
 <section class="section" id="video" data-nav="video">
   <div class="container content">
     <h3 class="title">Video Editing</h3>
-    <p class="justified">On LTX-Video, renoising acts on the 3D-VAE latent and the denoiser keeps the edited clip coherent. At the same noise level, renoise-denoise matches the conditioning swap's CLIP-T (0.247 against 0.242 at \(s = 0.909\)) while staying closer to the source (LPIPS 0.318 against 0.545).</p>
+    <p class="justified">On LTX-Video, renoising acts on the 3D-VAE latent and the denoiser supplies temporal consistency. At the same noise level, renoise-denoise matches the conditioning swap's CLIP-T (0.247 against 0.242 at \(s = 0.909\)) while staying closer to the source (LPIPS 0.318 against 0.545).</p>
     <figure>
       <div class="viewer" id="vidViewer"></div>
       <figcaption>The swap denoises under \(c\) down to the same noise level and continues under \(c'\).</figcaption>
@@ -78,7 +78,7 @@
 <section class="section" id="language" data-nav="language">
   <div class="container content">
     <h3 class="title">Language Editing</h3>
-    <p class="justified">LLaDA-8B is a masked diffusion LM, so its renoising channel erases each token with probability \(s\) and the model fills the masks under the new instruction. Raising \(s\) trades token F1 to the source (0.96 at \(s = 0.1\), 0.30 at \(s = 0.9\)) for the target sentiment probability (0.10 to 0.62).</p>
+    <p class="justified">LLaDA-8B is a masked diffusion LM, so its renoising channel erases each token with probability \(s\) and the model fills the masks under the new instruction. Raising \(s\) trades token F1 to the source (0.96 at \(s = 0.1\), 0.30 at \(s = 0.9\)) for the target sentiment probability (0.10 to 0.62), and regeneration with the source in the prompt scores 0.56 and 0.57.</p>
     <figure>
       <div class="viewer" id="langViewer"></div>
       <figcaption>Words not in the source are in red.</figcaption>
