@@ -151,7 +151,6 @@
     var yImg = h('img', { class: 'sq pix', alt: 'Renoised latent', width: '64', height: '64' });
     var outImg = h('img', { class: 'sq', alt: 'Output image', width: '512', height: '512' });
     var badge = h('span', { class: 'badge' });
-    var yTag = h('small');
     function panel(img, title, small, extra) {
       return h('div', { class: 'panel' }, [h('div', { class: 'media' }, [img, extra || null]),
         h('div', { class: 'tag' }, [title, small])]);
@@ -159,7 +158,7 @@
     var panels = h('div', { class: 'flow' }, [
       panel(srcImg, 'Source X', null),
       flowArrow('renoise'),
-      panel(yImg, 'Renoised Y', yTag),
+      panel(yImg, 'Renoised latent Y', null),
       flowArrow('denoise'),
       panel(outImg, 'Edit X' + PRIME, null, badge)]);
     var promptBox = h('div');
@@ -206,8 +205,7 @@
       yImg.src = base(e) + 'y' + key + '.png';
       outImg.src = base(e) + 's' + key + '.webp';
       readS.textContent = 's = ' + key;
-      readNfe.textContent = k === 0 ? 'source' : (k === n ? 'regeneration' : e.nfe[k] + ' of 28 NFEs');
-      yTag.textContent = '64 × 64 latent';
+      readNfe.textContent = k === 0 ? 'source' : (k === n ? 'regeneration' : '');
       var edited = e.margin[k] > 0;
       badge.textContent = 'CLIP prefers c' + (edited ? PRIME : '');
       badge.classList.toggle('on', edited);
@@ -242,9 +240,8 @@
     function panel(v, title, small) {
       return h('div', { class: 'panel' }, [h('div', { class: 'media' }, [v]), h('div', { class: 'tag' }, [title, small])]);
     }
-    var time = h('span'), sub = h('small');
     var range = scrubber(function (f) { want = false; btn.show(false); c.pause(); c.seek(f * (vids[0].duration || 0)); });
-    var c = clock(vids, function (t, d) { if (d) { range.value = String(Math.round(1000 * t / d)); sub.textContent = 'of ' + d.toFixed(1) + ' s'; } time.textContent = t.toFixed(1) + ' s'; });
+    var c = clock(vids, function (t, d) { if (d) range.value = String(Math.round(1000 * t / d)); });
     var btn = playButton(function () { want = !c.playing(); sync(); });
     var editPills = pills(D.edits.map(function (e) { return e.label; }), cur, function (i) { cur = i; load(); }, 'Edit');
     var sPills = pills(D.sigmas.map(function (v) { return 's = ' + v.toFixed(3); }), sg, function (i) { sg = i; load(); }, 'Renoising strength');
@@ -253,7 +250,7 @@
     root.appendChild(h('div', { class: 'panels' }, [panel(vids[0], 'Source', null),
       panel(vids[1], 'Renoise-denoise', rdTag), panel(vids[2], 'Swap', swTag)]));
     root.appendChild(promptBox);
-    root.appendChild(h('div', { class: 'ctrl' }, [btn, h('div', { class: 'track' }, [range]), h('div', { class: 'readout' }, [time, sub])]));
+    root.appendChild(h('div', { class: 'ctrl' }, [btn, h('div', { class: 'track' }, [range])]));
     function load() {
       var e = D.edits[cur], s = D.sigmas[sg], key = String(s), base = 'static/video/edit/';
       var srcs = [base + e.src + '.mp4', base + e.src + '__' + e.pair + '__s' + key + '.mp4', base + e.src + '__' + e.pair + '__swap' + key + '.mp4'];
@@ -285,15 +282,14 @@
     rd.forEach(function (v) { grid.appendChild(v); });
     grid.appendChild(h('div', { class: 'rowlab' }, ['Regeneration']));
     rg.forEach(function (v) { grid.appendChild(v); });
-    var time = h('span'), sub = h('small');
     var all = rd.concat(rg);
     var range = scrubber(function (f) { want = false; btn.show(false); c.pause(); c.seek(f * (all[0].duration || 0)); });
-    var c = clock(all, function (t, d) { if (d) { range.value = String(Math.round(1000 * t / d)); sub.textContent = 'of ' + d.toFixed(1) + ' s'; } time.textContent = t.toFixed(1) + ' s'; });
+    var c = clock(all, function (t, d) { if (d) range.value = String(Math.round(1000 * t / d)); });
     var btn = playButton(function () { want = !c.playing(); sync(); });
     var streamPills = pills(D.streams.map(function (s) { return LABELS[s.name] || s.name; }), cur, function (i) { cur = i; load(); }, 'Stream');
     root.appendChild(h('div', { class: 'bar' }, [streamPills]));
     root.appendChild(grid);
-    root.appendChild(h('div', { class: 'ctrl' }, [btn, h('div', { class: 'track' }, [range]), h('div', { class: 'readout' }, [time, sub])]));
+    root.appendChild(h('div', { class: 'ctrl' }, [btn, h('div', { class: 'track' }, [range])]));
     function load() {
       var s = D.streams[cur], base = 'static/video/stream/' + s.name;
       for (var t = 0; t < 4; t++) {
@@ -320,8 +316,7 @@
     var outBox = h('div', { class: 'textbox' });
     var outHead = h('h5');
     var outBody = h('div');
-    var outMet = h('div', { class: 'prompt', style: 'text-align:left;margin-top:.5rem;font-size:.82rem;color:#6b7280' });
-    outBox.appendChild(outHead); outBox.appendChild(outBody); outBox.appendChild(outMet);
+    outBox.appendChild(outHead); outBox.appendChild(outBody);
     var exPills = pills(ex.map(function (e) { return e.label; }), cur, function (i) { cur = i; setPlaying(false); render(); }, 'Edit');
     var N = 9;                                   // nine strengths 0.1 to 0.9, then regeneration
     var range = h('input', { type: 'range', min: '0', max: String(N), step: '1', value: String(k), 'aria-label': 'Renoising strength s' });
@@ -354,9 +349,6 @@
       outHead.textContent = k < N ? 'Renoise-denoise, s = ' + fmt(lv.s) : 'Regeneration with the source in the prompt';
       outBody.innerHTML = '';
       outBody.appendChild(words(lv.words));
-      var sent = e.pair.indexOf('sent') >= 0;
-      outMet.textContent = (lv.f1 != null ? 'F1 to source ' + lv.f1.toFixed(2) : '') +
-        (sent && lv.p != null ? ', target sentiment ' + lv.p.toFixed(2) : '');
       readS.textContent = k < N ? 's = ' + fmt(lv.s) : 'regen';
       readM.textContent = k < N ? lv.masked + ' of ' + lv.tokens + ' tokens masked' : lv.nfe + ' NFEs';
     }
@@ -392,7 +384,7 @@
     var panels = h('div', { class: 'panels' }, [0, 1, 2].map(function (i) {
       return h('div', { class: 'panel' }, [h('div', { class: 'media' }, [vids[i], badges[i]]), h('div', { class: 'tag' }, [titles[i], tags[i]])]);
     }));
-    var time = h('span'), sub = h('small');
+    var time = h('span');
     var range = scrubber(function (f) { want = false; btn.show(false); c.pause(); c.seek(f * (vids[0].duration || 0)); });
     var marks = h('div', { class: 'marks' });
     var shown = [];
@@ -404,7 +396,6 @@
       }
       var step = Math.floor(t * D.fps + 1e-6);
       time.textContent = 'step ' + step;
-      sub.textContent = t.toFixed(1) + ' s';
       shown.forEach(function (a, i) {
         var up = a.t_lift != null && step >= a.t_lift;
         badges[i].textContent = 'lifted at step ' + a.t_lift;
@@ -416,7 +407,7 @@
     var sPills = pills(rdList.map(function (a) { return 's = ' + a.s; }), cur, function (i) { cur = i; load(); }, 'Renoising strength');
     root.appendChild(h('div', { class: 'bar' }, [sPills]));
     root.appendChild(panels);
-    root.appendChild(h('div', { class: 'ctrl' }, [btn, h('div', { class: 'track' }, [range, marks]), h('div', { class: 'readout' }, [time, sub])]));
+    root.appendChild(h('div', { class: 'ctrl' }, [btn, h('div', { class: 'track' }, [range, marks]), h('div', { class: 'readout' }, [time])]));
     function load() {
       var rdArm = rdList[cur];
       shown = [arms.rd_s100, rdArm, arms.replan];
