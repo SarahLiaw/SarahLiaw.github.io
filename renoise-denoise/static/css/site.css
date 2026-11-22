@@ -202,7 +202,7 @@ img.pix, video.pix { image-rendering: pixelated; }
   .readout { min-width: 6.2rem; font-size: .84rem; }
   .textcols { grid-template-columns: 1fr; }
   .streamgrid { grid-template-columns: 4.4rem repeat(4, minmax(0, 1fr)); gap: 4px; }
-  .streamgrid .colhead { font-size: .68rem; }
+  .streamgrid .colhead { font-size: .68rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .streamgrid .rowlab { font-size: .74rem; }
   .thumbs button { width: 46px; }
   .pills button { font-size: .82rem; padding: .3em .75em; }

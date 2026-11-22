@@ -152,17 +152,16 @@
     var outImg = h('img', { class: 'sq', alt: 'Output image', width: '512', height: '512' });
     var badge = h('span', { class: 'badge' });
     var yTag = h('small');
-    var outTag = h('small');
     function panel(img, title, small, extra) {
       return h('div', { class: 'panel' }, [h('div', { class: 'media' }, [img, extra || null]),
         h('div', { class: 'tag' }, [title, small])]);
     }
     var panels = h('div', { class: 'flow' }, [
-      panel(srcImg, 'Source X', h('small', { text: 'generated under c' })),
+      panel(srcImg, 'Source X', null),
       flowArrow('renoise'),
       panel(yImg, 'Renoised Y', yTag),
       flowArrow('denoise'),
-      panel(outImg, 'Edit X' + PRIME, outTag, badge)]);
+      panel(outImg, 'Edit X' + PRIME, null, badge)]);
     var promptBox = h('div');
     var range = h('input', { type: 'range', min: '0', max: String(n), step: '1', value: '0', 'aria-label': 'Renoising strength s' });
     var ticks = h('div', { class: 'ticks' });
@@ -207,9 +206,8 @@
       yImg.src = base(e) + 'y' + key + '.png';
       outImg.src = base(e) + 's' + key + '.webp';
       readS.textContent = 's = ' + key;
-      readNfe.textContent = k === 0 ? 'keeps the source' : (k === n ? 'regeneration, 28 NFEs' : e.nfe[k] + ' of 28 NFEs');
-      yTag.textContent = k === 0 ? 'Y = X' : (k === n ? 'pure noise' : 'latent, 64 × 64');
-      outTag.textContent = k === 0 ? 'unchanged' : 'denoised under c' + PRIME;
+      readNfe.textContent = k === 0 ? 'source' : (k === n ? 'regeneration' : e.nfe[k] + ' of 28 NFEs');
+      yTag.textContent = '64 × 64 latent';
       var edited = e.margin[k] > 0;
       badge.textContent = 'CLIP prefers c' + (edited ? PRIME : '');
       badge.classList.toggle('on', edited);
@@ -251,7 +249,7 @@
     var sPills = pills(D.sigmas.map(function (v) { return 's = ' + v.toFixed(3); }), sg, function (i) { sg = i; load(); }, 'Renoising strength');
     var promptBox = h('div');
     root.appendChild(h('div', { class: 'bar' }, [editPills, sPills]));
-    root.appendChild(h('div', { class: 'panels' }, [panel(vids[0], 'Source', h('small', { text: 'generated under c' })),
+    root.appendChild(h('div', { class: 'panels' }, [panel(vids[0], 'Source', null),
       panel(vids[1], 'Renoise-denoise', rdTag), panel(vids[2], 'Swap', swTag)]));
     root.appendChild(promptBox);
     root.appendChild(h('div', { class: 'ctrl' }, [btn, h('div', { class: 'track' }, [range]), h('div', { class: 'readout' }, [time, sub])]));
@@ -260,8 +258,9 @@
       var srcs = [base + e.src + '.mp4', base + e.src + '__' + e.pair + '__s' + key + '.mp4', base + e.src + '__' + e.pair + '__swap' + key + '.mp4'];
       vids[0].poster = base + e.src + '.jpg';
       vids.forEach(function (v, i) { if (v.getAttribute('src') !== srcs[i]) { v.src = srcs[i]; v.load(); } });
-      rdTag.textContent = 's = ' + s.toFixed(3) + ', ' + NFE_RD[key] + ' NFEs';
-      swTag.textContent = 'switch at s = ' + s.toFixed(3) + ', ' + NFE_SWAP + ' NFEs';
+      var band = e.bands[key] || [false, false];          // black edge bands measured in the clip files
+      rdTag.textContent = NFE_RD[key] + ' NFEs' + (band[0] ? ', black band is in the output' : '');
+      swTag.textContent = NFE_SWAP + ' NFEs' + (band[1] ? ', black band is in the output' : '');
       promptBox.innerHTML = '';
       promptBox.appendChild(promptPair(e.c, e.c_new));
       sync();
@@ -281,9 +280,9 @@
     var grid = h('div', { class: 'streamgrid' });
     grid.appendChild(h('div'));
     heads.forEach(function (x) { grid.appendChild(x); });
-    grid.appendChild(h('div', { class: 'rowlab' }, ['Renoise-denoise', h('small', { text: 's = 0.975' })]));
+    grid.appendChild(h('div', { class: 'rowlab' }, ['Renoise-denoise']));
     rd.forEach(function (v) { grid.appendChild(v); });
-    grid.appendChild(h('div', { class: 'rowlab' }, ['Regeneration', h('small', { text: 's = 1' })]));
+    grid.appendChild(h('div', { class: 'rowlab' }, ['Regeneration']));
     rg.forEach(function (v) { grid.appendChild(v); });
     var time = h('span'), sub = h('small');
     var all = rd.concat(rg);
@@ -298,6 +297,7 @@
       var s = D.streams[cur], base = 'static/video/stream/' + s.name;
       for (var t = 0; t < 4; t++) {
         heads[t].textContent = (t ? '+ ' : '') + s.steps[t];
+        heads[t].title = s.steps[t];
         [[rd, 'rd'], [rg, 'regen']].forEach(function (p) {
           var src = base + '__' + p[1] + '__' + t + '.mp4';
           if (p[0][t].getAttribute('src') !== src) { p[0][t].src = src; p[0][t].load(); }
@@ -312,7 +312,7 @@
 
   /* ---------------- language: LLaDA-8B erasure channel ---------------- */
   function langViewer(root, D) {
-    var cur = 0, k = 3, playing = !REDUCE, visible = false, timer = 0;
+    var cur = 0, k = 5, playing = !REDUCE, visible = false, timer = 0;   // opens at s = 0.6, the paper's example
     var ex = D.examples;
     var instr = h('p', { class: 'instr' });
     var srcBox = h('div', { class: 'textbox' });
@@ -354,8 +354,8 @@
       outBody.innerHTML = '';
       outBody.appendChild(words(lv.words));
       var sent = e.pair.indexOf('sent') >= 0;
-      outMet.textContent = (lv.f1 != null ? 'token F1 to source ' + lv.f1.toFixed(2) : '') +
-        (sent && lv.p != null ? ', target sentiment probability ' + lv.p.toFixed(2) : '');
+      outMet.textContent = (lv.f1 != null ? 'F1 to source ' + lv.f1.toFixed(2) : '') +
+        (sent && lv.p != null ? ', target sentiment ' + lv.p.toFixed(2) : '');
       readS.textContent = k < N ? 's = ' + fmt(lv.s) : 'regen';
       readM.textContent = k < N ? lv.masked + ' of ' + lv.tokens + ' tokens masked' : lv.nfe + ' NFEs';
     }
@@ -386,7 +386,7 @@
     var rdList = D.arms.filter(function (a) { return a.kind === 'rd'; });
     var cur = 0, visible = false, want = !REDUCE;
     var vids = [0, 1, 2].map(function () { return h('video', { class: 'pix', preload: 'auto', muted: '', playsinline: '', width: '256', height: '256' }); });
-    var badges = [0, 1, 2].map(function () { return h('span', { class: 'badge' }); });
+    var badges = [0, 1, 2].map(function () { return h('span', { class: 'badge', hidden: '' }); });
     var tags = [0, 1, 2].map(function () { return h('small'); });
     var titles = ['Keep old plan', 'Renoise-denoise', 'Replan'];
     var panels = h('div', { class: 'panels' }, [0, 1, 2].map(function (i) {
@@ -408,7 +408,8 @@
       sub.textContent = t.toFixed(1) + ' s';
       shown.forEach(function (a, i) {
         var up = a.t_lift != null && step >= a.t_lift;
-        badges[i].textContent = up ? 'lifted' : 'not lifted';
+        badges[i].textContent = 'lifted at step ' + a.t_lift;
+        badges[i].hidden = !up;
         badges[i].classList.toggle('on', up);
       });
     });
@@ -430,7 +431,7 @@
       tags[2].textContent = 's = 1, ' + arms.replan.react_nfe + ' NFEs';
       stats.innerHTML = '';
       [['keep', shown[0]], [rdArm.s, rdArm], ['replan', shown[2]]].forEach(function (p) {
-        stats.appendChild(h('div', {}, [h('b', { text: SUCC[p[0]] + ' succeed' }), 'this episode lifts at step ' + p[1].t_lift]));
+        stats.appendChild(h('div', {}, [h('b', { text: SUCC[p[0]] }), 'succeed']));
       });
       sync();
     }
