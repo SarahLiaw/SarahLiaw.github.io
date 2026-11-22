@@ -73,6 +73,10 @@ section[id] { scroll-margin-top: 4.25rem; }
 }
 .button:hover { text-decoration: none; filter: brightness(1.15); }
 .button svg { width: 1.05em; height: 1.05em; fill: currentColor; }
+.button .ai { font-size: 1.15em; line-height: 1; }
+.button.soon { opacity: .4; cursor: default; }
+.button.soon:hover { filter: none; }
+.publication-links + .tldr { margin-top: 1.4rem; }
 .tldr { font-size: 1.25rem; margin: 1.5rem auto 0; max-width: 860px; color: var(--text); text-wrap: pretty; }
 .tldr b { font-weight: 700; }
 
