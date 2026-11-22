@@ -82,10 +82,8 @@
   <div class="container content">
     <p class="eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="8.5" cy="9.5" r="1.7"/><path d="M4 17.5l5-5 4 4 3-3 4 4"/></svg>Images<span>FLUX.1-dev</span></p>
     <h3 class="title">Edits switch on at high noise</h3>
-    <div class="stats">
-      <div class="stat"><b>10% → 95%</b><span>edits applied, \(s = 0.8 \to 0.98\)</span></div>
-      <div class="stat"><b>0.260</b><span>CLIP to \(c'\) at \(s = 0.94\)</span><small>regeneration 0.279</small></div>
-      <div class="stat"><b>0.45</b><span>LPIPS to source at \(s = 0.94\)</span><small>regeneration 0.66</small></div>
+    <div class="stats one">
+      <div class="stat"><b>10% → 95%</b><span>edits where CLIP prefers \(c'\)</span><small>\(s = 0.8 \to 0.98\)</small></div>
     </div>
     <figure>
       <div class="viewer" id="imgViewer"></div>
