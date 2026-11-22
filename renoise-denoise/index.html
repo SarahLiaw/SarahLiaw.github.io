@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Partial Renoising for Conditional Multi-Modal Generation</title>
-  <meta name="description" content="Renoise-denoise updates a generated sample after its condition changes by renoising it to strength s and denoising it under the new condition, with one formulation across images, video, language and robot plans.">
+  <title>Just Add Noise: Renoise-Denoise is a Universal Primitive for Generative Control</title>
+  <meta name="description" content="When the condition of a pretrained generator changes, renoising the current sample to strength s and denoising it under the new condition is a single training-free primitive for generative control across images, video, language and robot plans.">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans:400,500,700|Noto+Sans|Castoro">
   <link rel="stylesheet" href="static/css/site.css">
   <script>
@@ -19,8 +19,8 @@
 <body>
 
 <nav class="navbar" id="nav" aria-label="Sections">
-  <a href="#images">Images</a>
   <a href="#method">Method</a>
+  <a href="#images">Images</a>
   <a href="#video">Video</a>
   <a href="#language">Language</a>
   <a href="#robotics">Robotics</a>
@@ -29,48 +29,68 @@
 
 <section class="hero" id="top">
   <div class="container">
-    <h1 class="publication-title">Partial Renoising for Conditional Multi-Modal Generation</h1>
+    <h1 class="publication-title">Just Add Noise: Renoise-Denoise is a Universal Primitive for Generative Control</h1>
     <div class="publication-authors">
-      <span class="author-block"><a href="https://emiletimothy.net">Emile Timothy Anand</a>,</span>
-      <span class="author-block"><a href="https://richardhoff88.github.io">Richard Hoffmann</a>,</span>
-      <span class="author-block"><a href="https://sarahliaw.github.io/">Sarah Liaw</a>,</span>
-      <span class="author-block"><a href="https://jakeabernethy.github.io">Jacob Abernethy</a>,</span>
-      <span class="author-block"><a href="https://faculty.cc.gatech.edu/~vdbrand/">Jan van den Brand</a></span>
+      <span class="author-block"><a href="https://emiletimothy.net">Emile Anand</a><sup>*1,2</sup>,</span>
+      <span class="author-block"><a href="https://sarahliaw.github.io/">Sarah Liaw</a><sup>*3</sup>,</span>
+      <span class="author-block"><a href="https://richardhoff88.github.io">Richard Hoffmann</a><sup>4</sup>,</span>
+      <span class="author-block"><a href="https://faculty.cc.gatech.edu/~vdbrand/">Jan van den Brand</a><sup>2</sup>,</span>
+      <span class="author-block"><a href="https://jakeabernethy.github.io">Jacob Abernethy</a><sup>1,2</sup></span>
     </div>
-    <p class="tldr"><b>TLDR:</b> Renoise-denoise updates a generated sample after its condition changes by renoising it to strength \(s\) and denoising it under the new condition. We give it one formulation across images, video, language and robot plans, where \(s\) trades accuracy against faithfulness.</p>
-  </div>
-</section>
-
-<section class="section" id="images" data-nav="images" style="padding-top: .5rem">
-  <div class="container">
-    <figure>
-      <div class="viewer" id="imgViewer"></div>
-      <figcaption>Over 39 FLUX.1-dev edits, CLIP similarity to \(c'\) reaches 0.260 at \(s = 0.94\) against 0.279 for regeneration, with LPIPS to the source 0.45 against 0.66.</figcaption>
-    </figure>
+    <div class="publication-authors">
+      <span class="author-block"><sup>1</sup>Google Research</span>
+      <span class="author-block"><sup>2</sup>Georgia Tech</span>
+      <span class="author-block"><sup>3</sup>Harvard University</span>
+      <span class="author-block"><sup>4</sup>Caltech</span>
+    </div>
+    <p class="equal"><sup>*</sup>Equal contribution</p>
+    <p class="tldr"><b>TLDR:</b> When the condition of a pretrained generator changes, renoising the current sample to strength \(s\) and denoising it under the new condition is a single training-free primitive for generative control across images, video, language and robot plans.</p>
   </div>
 </section>
 
 <section class="section" id="method" data-nav="method">
   <div class="container content">
     <h3 class="title">Renoise-Denoise</h3>
-    <p class="justified">A pretrained model has produced a sample \(X\) under a condition \(c\), and the condition changes to \(c'\). Renoise-denoise renoises \(X\) to strength \(s\) and runs the sampler for \(c'\) from flow time \(1-s\),</p>
-    <div class="eq">\[ Y = (1-s)\,X + s\,\varepsilon, \qquad X' = \Phi^{c'}_{1-s\to 1}(Y), \]</div>
-    <p class="justified">so \(s = 0\) keeps \(X\) and \(s = 1\) regenerates. The strength trades accuracy, whether \(X'\) looks like a sample for \(c'\), against faithfulness, how far it moved from \(X\), and on a uniform timestep grid an edit costs an \(s\) fraction of the NFEs of full generation. The Wasserstein distance between \(p_c\) and \(p_{c'}\) governs how much noise an edit needs. Any nested renoising channel works, which covers Gaussian noise for images, video and robot plans and the erasure channel of a masked diffusion LM for text.</p>
+    <p class="justified">A pretrained generator has produced a sample \(X\) under a condition \(c\), and the condition changes to \(c'\). Renoise-denoise updates \(X\) in two steps with the model's own sampler,</p>
+    <div class="eq eq-wide">\[ \underbrace{Y = (1-s)\,X + s\,\varepsilon}_{\text{renoise to strength } s} \qquad\qquad \underbrace{X' = \Phi^{c'}_{1-s\to 1}(Y)}_{\text{denoise under } c' \text{ from flow time } 1-s} \]</div>
+    <div class="eq eq-narrow">\[ \begin{aligned} &\text{renoise:} && Y = (1-s)\,X + s\,\varepsilon \\ &\text{denoise:} && X' = \Phi^{c'}_{1-s\to 1}(Y) \end{aligned} \]</div>
+    <p class="justified">so \(s = 0\) keeps \(X\) and \(s = 1\) regenerates. In between, \(s\) trades accuracy, whether \(X'\) looks like a sample for \(c'\), against faithfulness, how close \(X'\) stays to \(X\), and an edit costs an \(s\) fraction of the denoising steps (NFEs) of full generation. The Wasserstein distance between \(p_c\) and \(p_{c'}\) governs how much noise an edit needs. The same two steps run in every modality below, with the model's own forward process as the renoising channel.</p>
+    <table class="map">
+      <thead><tr><th></th><th>Model</th><th>Renoising channel</th></tr></thead>
+      <tbody>
+        <tr><td><a href="#images">Images</a></td><td>FLUX.1-dev</td><td>Gaussian noise on the VAE latent</td></tr>
+        <tr><td><a href="#video">Video</a></td><td>LTX-Video</td><td>Gaussian noise on the 3D-VAE latent</td></tr>
+        <tr><td><a href="#language">Language</a></td><td>LLaDA-8B</td><td>Erasure, each token masked with probability \(s\)</td></tr>
+        <tr><td><a href="#robotics">Robotics</a></td><td>Diffusion Policy</td><td>Gaussian noise on the action plan</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="section" id="images" data-nav="images">
+  <div class="container content">
+    <h3 class="title">Image Editing</h3>
+    <p class="justified">On FLUX.1-dev, edits switch on in a narrow band of high noise. Over 39 edits, CLIP similarity to \(c'\) reaches 0.260 at \(s = 0.94\) against 0.279 for regeneration, while LPIPS to the source is 0.45 against 0.66.</p>
+    <figure>
+      <div class="viewer" id="imgViewer"></div>
+      <figcaption>Drag \(s\) or press play, and pick an edit below. The renoised latent \(Y\) is drawn at its 64 × 64 resolution.</figcaption>
+    </figure>
   </div>
 </section>
 
 <section class="section" id="video" data-nav="video">
   <div class="container content">
     <h3 class="title">Video Editing</h3>
-    <p class="justified">On LTX-Video, renoising acts on the 3D-VAE latent and the denoiser supplies temporal consistency. At the same noise level, renoise-denoise matches the conditioning swap's CLIP-T (0.247 against 0.242 at \(s = 0.909\)) while staying closer to the source (LPIPS 0.318 against 0.545).</p>
+    <p class="justified">On LTX-Video, renoising acts on the 3D-VAE latent and the denoiser supplies temporal consistency. At the same \(s\), renoise-denoise matches the conditioning swap's CLIP-T (0.247 against 0.242 at \(s = 0.909\)) and stays closer to the source (LPIPS 0.318 against 0.545).</p>
     <figure>
       <div class="viewer" id="vidViewer"></div>
-      <figcaption>The swap denoises under \(c\) down to the same noise level and continues under \(c'\).</figcaption>
+      <figcaption>Pick an edit and a strength \(s\). The swap denoises under \(c\) down to the same noise level and then continues under \(c'\).</figcaption>
     </figure>
     <h4 class="subtitle">Sequential Updates</h4>
     <p class="justified">Each update renoises the previous clip to \(s = 0.975\) under the accumulated prompt with 6 NFEs, and regeneration samples every clip afresh with 10. LPIPS to the previous clip is 0.50 to 0.52 for renoise-denoise and 0.58 to 0.68 for regeneration.</p>
     <figure>
       <div class="viewer" id="streamViewer"></div>
+      <figcaption>Each column adds one instruction to the prompt.</figcaption>
     </figure>
   </div>
 </section>
@@ -81,18 +101,18 @@
     <p class="justified">LLaDA-8B is a masked diffusion LM, so its renoising channel erases each token with probability \(s\) and the model fills the masks under the new instruction. Raising \(s\) trades token F1 to the source (0.96 at \(s = 0.1\), 0.30 at \(s = 0.9\)) for the target sentiment probability (0.10 to 0.62), and regeneration with the source in the prompt scores 0.56 and 0.57.</p>
     <figure>
       <div class="viewer" id="langViewer"></div>
-      <figcaption>Words not in the source are in red.</figcaption>
+      <figcaption>Drag \(s\) or press play. Words not in the source are in red.</figcaption>
     </figure>
   </div>
 </section>
 
 <section class="section" id="robotics" data-nav="robotics">
   <div class="container content">
-    <h3 class="title">Policy Steering</h3>
+    <h3 class="title">Robot Policy Steering</h3>
     <p class="justified">A Diffusion Policy executes a long open-loop plan on Lift when the cube is moved. Keeping the old plan succeeds in 37 of 50 episodes, and renoise-denoise at \(s = 0.2\) succeeds in 42 with 21 denoising steps, as many as a 100-step replan. On PushT all arms tie.</p>
     <figure>
       <div class="viewer robot" id="robotViewer"></div>
-      <figcaption>One episode. The new plan is issued two steps after the cube moves.</figcaption>
+      <figcaption>One Lift episode. The cube moves at step 21 and the plans update at step 23. Pick \(s\) for the middle panel.</figcaption>
     </figure>
   </div>
 </section>
@@ -102,11 +122,7 @@
     <h2 class="title" style="text-align:left">BibTeX</h2>
     <div class="bib">
       <button class="copy" type="button" id="copyBib">Copy</button>
-<pre id="bibtex">@misc{anand2026partialrenoising,
-      title={Partial Renoising for Conditional Multi-Modal Generation},
-      author={Emile Timothy Anand and Richard Hoffmann and Sarah Liaw and Jacob Abernethy and Jan van den Brand},
-      year={2026},
-}</pre>
+<pre id="bibtex"></pre>
     </div>
   </div>
 </section>
@@ -141,7 +157,7 @@
   // content rises into view as it is reached
   (function () {
     if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    var items = document.querySelectorAll('.section h2, .section h3, .section h4, .section p, .section figure, .section .eq, .section .bib');
+    var items = document.querySelectorAll('.section h2, .section h3, .section h4, .section p, .section figure, .section .eq, .section .bib, .section .map');
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
     }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });

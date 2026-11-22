@@ -49,49 +49,82 @@
 
   function fmt(s) { return String(+s.toFixed(4)); }
 
-  // words of b missing from a (lowercase, punctuation stripped), for highlighting the new prompt
-  function newWords(a, b) {
+  // word-level diff of two prompts (longest common subsequence): [word, changed] lists for each
+  function wordDiff(a, b) {
+    var A = a.split(/\s+/), B = b.split(/\s+/), n = A.length, m = B.length, i, j;
     var norm = function (w) { return w.toLowerCase().replace(/[^a-z0-9-]/g, ''); };
-    var have = {};
-    a.split(/\s+/).forEach(function (w) { have[norm(w)] = 1; });
-    return b.split(/\s+/).map(function (w) { return [w, !have[norm(w)]]; });
+    var T = [];
+    for (i = 0; i <= n; i++) { T.push([]); for (j = 0; j <= m; j++) T[i].push(0); }
+    for (i = n - 1; i >= 0; i--) {
+      for (j = m - 1; j >= 0; j--) {
+        T[i][j] = norm(A[i]) === norm(B[j]) ? T[i + 1][j + 1] + 1 : Math.max(T[i + 1][j], T[i][j + 1]);
+      }
+    }
+    var keepA = A.map(function () { return false; }), keepB = B.map(function () { return false; });
+    i = 0; j = 0;
+    while (i < n && j < m) {
+      if (norm(A[i]) === norm(B[j])) { keepA[i] = true; keepB[j] = true; i++; j++; }
+      else if (T[i + 1][j] >= T[i][j + 1]) i++;
+      else j++;
+    }
+    return { a: A.map(function (w, k) { return [w, !keepA[k]]; }), b: B.map(function (w, k) { return [w, !keepB[k]]; }) };
   }
 
-  function promptLine(prefix, a, b) {
-    var p = h('p', { class: 'prompt' });
-    p.appendChild(document.createTextNode(prefix));
-    newWords(a, b).forEach(function (pair, i) {
-      if (i) p.appendChild(document.createTextNode(' '));
-      p.appendChild(pair[1] ? h('b', {}, [pair[0]]) : document.createTextNode(pair[0]));
+  // the source prompt c above the new prompt c', changed words marked in each
+  function promptPair(c, c2) {
+    var d = wordDiff(c, c2), box = h('div', { class: 'prompts' });
+    [['c', d.a, 'old'], ['c' + PRIME, d.b, 'new']].forEach(function (row) {
+      var p = h('p', { class: 'prompt' }, [h('span', { class: 'plab', text: row[0] })]);
+      row[1].forEach(function (w) {
+        p.appendChild(document.createTextNode(' '));
+        p.appendChild(w[1] ? h('span', { class: row[2], text: w[0] }) : document.createTextNode(w[0]));
+      });
+      box.appendChild(p);
     });
-    return p;
+    return box;
+  }
+
+  function flowArrow(label) {
+    return h('div', { class: 'arrow', 'aria-hidden': 'true' }, [h('span', { text: label }),
+      h('div', { html: '<svg viewBox="0 0 44 12"><path d="M1 6h38M33 1.5l6 4.5-6 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' })]);
   }
 
   // a set of videos played on one clock; videos[0] drives the others
   function clock(videos, onTime) {
     var playing = false, raf = 0;
     function each(f) { videos.forEach(function (v) { if (v) f(v); }); }
+    function report() { if (onTime) onTime(videos[0].currentTime, videos[0].duration || 0); }
+    function playOne(v) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
     function loop() {
+      raf = 0;
+      if (!playing) return;
       var m = videos[0];
       each(function (v) {
-        if (v !== m && v.readyState >= 2 && Math.abs(v.currentTime - m.currentTime) > 0.1) {
+        if (v === m || v.seeking || v.readyState < 2) return;     // let a pending seek finish first
+        if (Math.abs(v.currentTime - m.currentTime) > 0.15) {
           try { v.currentTime = m.currentTime; } catch (e) { /* not seekable yet */ }
         }
+        if (v.paused) playOne(v);
       });
-      if (onTime) onTime(m.currentTime, m.duration || 0);
-      raf = playing ? requestAnimationFrame(loop) : 0;
+      if (m.paused && m.readyState >= 2) playOne(m);
+      report();
+      raf = requestAnimationFrame(loop);
     }
-    function playOne(v) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
     each(function (v) {
       v.muted = true; v.loop = true; v.playsInline = true;
       v.addEventListener('loadeddata', function () {
         if (v !== videos[0]) { try { v.currentTime = videos[0].currentTime; } catch (e) { /* ignore */ } }
-        if (playing) playOne(v); else if (onTime && v === videos[0]) onTime(v.currentTime, v.duration || 0);
+        if (playing) playOne(v); else if (v === videos[0]) report();
       });
     });
     return {
       play: function () { playing = true; each(playOne); if (!raf) raf = requestAnimationFrame(loop); },
-      pause: function () { playing = false; each(function (v) { v.pause(); }); loop(); },
+      pause: function () {
+        playing = false;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        each(function (v) { v.pause(); });
+        report();
+      },
       seek: function (t) { each(function (v) { try { v.currentTime = t; } catch (e) { /* ignore */ } }); if (onTime) onTime(t, videos[0].duration || 0); },
       playing: function () { return playing; },
     };
@@ -124,10 +157,12 @@
       return h('div', { class: 'panel' }, [h('div', { class: 'media' }, [img, extra || null]),
         h('div', { class: 'tag' }, [title, small])]);
     }
-    var panels = h('div', { class: 'panels' }, [
+    var panels = h('div', { class: 'flow' }, [
       panel(srcImg, 'Source X', h('small', { text: 'generated under c' })),
+      flowArrow('renoise'),
       panel(yImg, 'Renoised Y', yTag),
-      panel(outImg, 'Output X' + PRIME, outTag, badge)]);
+      flowArrow('denoise'),
+      panel(outImg, 'Edit X' + PRIME, outTag, badge)]);
     var promptBox = h('div');
     var range = h('input', { type: 'range', min: '0', max: String(n), step: '1', value: '0', 'aria-label': 'Renoising strength s' });
     var ticks = h('div', { class: 'ticks' });
@@ -162,8 +197,8 @@
       L.forEach(function (v) { (new Image()).src = base(e) + 's' + fmt(v) + '.webp'; (new Image()).src = base(e) + 'y' + fmt(v) + '.png'; });
       srcImg.src = base(e) + 's0.webp';
       promptBox.innerHTML = '';
-      promptBox.appendChild(promptLine('c' + PRIME + ': ', e.c, e.c_new));
-      Array.prototype.forEach.call(thumbs.children, function (b, j) { b.setAttribute('aria-pressed', String(b.title === e.label)); });
+      promptBox.appendChild(promptPair(e.c, e.c_new));
+      Array.prototype.forEach.call(thumbs.children, function (b) { b.setAttribute('aria-pressed', String(b.title === e.label)); });
       show();
     }
     function show() {
@@ -172,12 +207,12 @@
       yImg.src = base(e) + 'y' + key + '.png';
       outImg.src = base(e) + 's' + key + '.webp';
       readS.textContent = 's = ' + key;
-      readNfe.textContent = k === 0 ? 'source' : (e.nfe[k] + ' of 28 NFEs' + (k === n ? ', regeneration' : ''));
-      yTag.textContent = k === 0 ? 'Y = X' : (k === n ? 'pure noise' : '64 × 64 latent');
-      outTag.textContent = k === 0 ? 'the source itself' : 'denoised under c' + PRIME;
-      var closer = e.margin[k] > 0;
-      badge.textContent = 'CLIP: closer to c' + (closer ? PRIME : '');
-      badge.classList.toggle('on', closer);
+      readNfe.textContent = k === 0 ? 'keeps the source' : (k === n ? 'regeneration, 28 NFEs' : e.nfe[k] + ' of 28 NFEs');
+      yTag.textContent = k === 0 ? 'Y = X' : (k === n ? 'pure noise' : 'latent, 64 × 64');
+      outTag.textContent = k === 0 ? 'unchanged' : 'denoised under c' + PRIME;
+      var edited = e.margin[k] > 0;
+      badge.textContent = 'CLIP prefers c' + (edited ? PRIME : '');
+      badge.classList.toggle('on', edited);
     }
     function step() {
       timer = 0;
@@ -201,7 +236,7 @@
 
   /* ---------------- video: LTX-Video, renoise-denoise against the swap ---------------- */
   function videoViewer(root, D) {
-    var NFE_RD = { '0.9094': '2 + 3', '0.975': '3 + 3', '0.9937': '6 + 3' };   // paper, video swap table
+    var NFE_RD = { '0.9094': 5, '0.975': 6, '0.9937': 9 }, NFE_SWAP = 10;   // paper video swap table: 2+3, 3+3, 6+3 and 7+3
     var cur = 0, sg = 1, visible = false, want = !REDUCE;
     var vids = [0, 1, 2].map(function () { return h('video', { class: 'wide', preload: 'auto', muted: '', playsinline: '' }); });
     var rdTag = h('small'), swTag = h('small');
@@ -226,9 +261,9 @@
       vids[0].poster = base + e.src + '.jpg';
       vids.forEach(function (v, i) { if (v.getAttribute('src') !== srcs[i]) { v.src = srcs[i]; v.load(); } });
       rdTag.textContent = 's = ' + s.toFixed(3) + ', ' + NFE_RD[key] + ' NFEs';
-      swTag.textContent = 'switch at s = ' + s.toFixed(3) + ', 7 + 3 NFEs';
+      swTag.textContent = 'switch at s = ' + s.toFixed(3) + ', ' + NFE_SWAP + ' NFEs';
       promptBox.innerHTML = '';
-      promptBox.appendChild(promptLine('c' + PRIME + ': ', e.c, e.c_new));
+      promptBox.appendChild(promptPair(e.c, e.c_new));
       sync();
     }
     function sync() { btn.show(want); if (want && visible) c.play(); else c.pause(); }

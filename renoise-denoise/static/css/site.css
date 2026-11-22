@@ -215,3 +215,29 @@ img.pix, video.pix { image-rendering: pixelated; }
   .ctrl .readout { flex: 1 1 100%; min-width: 0; text-align: center; }
   .ctrl .readout small { display: inline; margin-left: .45em; }
 }
+
+/* hero extras, method map, image flow, prompt pair */
+.equal { font-size: .9rem; color: var(--muted); margin: .45rem 0 0; }
+.map { width: 100%; border-collapse: collapse; margin: 1.1rem 0 .4rem; font-size: .95rem; }
+.map th { text-align: left; font-weight: 600; color: var(--muted); font-size: .85rem; padding: .35rem .6rem; border-bottom: 1px solid var(--rule); }
+.map td { padding: .45rem .6rem; border-bottom: 1px solid var(--rule); color: var(--text); }
+.map td:first-child { font-weight: 600; white-space: nowrap; }
+.flow { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; align-items: start; }
+.flow .arrow { align-self: center; margin-top: -2.4rem; text-align: center; color: #8a909b; width: 52px; }
+.flow .arrow span { display: block; font-size: .78rem; line-height: 1.2; margin-bottom: 2px; }
+.flow .arrow svg { width: 44px; height: 12px; display: block; margin: 0 auto; }
+.prompts { margin: .8rem auto 0; max-width: 46rem; }
+.prompts .prompt { text-align: left; margin: .15rem 0 0; font-size: .9rem; line-height: 1.45; }
+.prompts .plab { display: inline-block; min-width: 1.3em; color: var(--muted); font-style: italic; }
+.prompts .old { color: #1f2328; font-weight: 600; }
+.prompts .new { color: var(--link); font-weight: 600; }
+@media (max-width: 768px) {
+  .flow { gap: 3px; }
+  .flow .arrow { width: 18px; margin-top: -2rem; }
+  .flow .arrow span { display: none; }
+  .flow .arrow svg { width: 16px; height: 10px; }
+  .map { font-size: .85rem; }
+  .map th, .map td { padding: .35rem .35rem; }
+  .prompts .prompt { font-size: .82rem; }
+  .badge { font-size: .62rem; left: 4px; top: 4px; padding: .08em .45em; }
+}
