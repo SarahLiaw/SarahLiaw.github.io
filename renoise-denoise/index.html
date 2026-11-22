@@ -19,11 +19,11 @@
 <body>
 
 <nav class="navbar" id="nav" aria-label="Sections">
-  <a href="#method">Method</a>
-  <a href="#images">Images</a>
-  <a href="#video">Video</a>
-  <a href="#language">Language</a>
-  <a href="#robotics">Robotics</a>
+  <a href="#how">How it works</a>
+  <a href="#images" class="m img">Images</a>
+  <a href="#video" class="m vid">Video</a>
+  <a href="#language" class="m lang">Language</a>
+  <a href="#robotics" class="m rob">Robotics</a>
   <a href="#BibTeX">BibTeX</a>
 </nav>
 
@@ -48,29 +48,46 @@
   </div>
 </section>
 
-<section class="section" id="method" data-nav="method">
+<section class="section" id="how" data-nav="how">
   <div class="container content">
-    <h3 class="title">Renoise-Denoise</h3>
-    <p class="justified">A model generated \(X\) under condition \(c\), and the condition changes to \(c'\). Renoise-denoise updates \(X\) in two steps,</p>
-    <div class="eq eq-wide">\[ \underbrace{Y = (1-s)\,X + s\,\varepsilon}_{\text{renoise to strength } s} \qquad\qquad \underbrace{X' = \Phi^{c'}_{1-s\to 1}(Y)}_{\text{denoise under } c' \text{ from flow time } 1-s} \]</div>
-    <div class="eq eq-narrow">\[ \begin{aligned} &\text{renoise:} && Y = (1-s)\,X + s\,\varepsilon \\ &\text{denoise:} && X' = \Phi^{c'}_{1-s\to 1}(Y) \end{aligned} \]</div>
-    <p class="justified">where \(s = 0\) keeps \(X\) and \(s = 1\) regenerates. Smaller \(s\) stays closer to \(X\), larger \(s\) follows \(c'\), and an edit costs an \(s\) fraction of the denoising steps (NFEs) of full generation.</p>
-    <table class="map">
-      <thead><tr><th></th><th>Model</th><th>Renoising channel</th></tr></thead>
-      <tbody>
-        <tr><td><a href="#images">Images</a></td><td>FLUX.1-dev</td><td>Gaussian noise on the VAE latent</td></tr>
-        <tr><td><a href="#video">Video</a></td><td>LTX-Video</td><td>Gaussian noise on the 3D-VAE latent</td></tr>
-        <tr><td><a href="#language">Language</a></td><td>LLaDA-8B</td><td>Erasure, each token masked with probability \(s\)</td></tr>
-        <tr><td><a href="#robotics">Robotics</a></td><td>Diffusion Policy</td><td>Gaussian noise on the action plan</td></tr>
-      </tbody>
-    </table>
+    <h3 class="title center">How It Works</h3>
+    <p class="lead">Renoise \(X\) to strength \(s\), then denoise it under the new condition \(c'\).<br>\(s = 0\) keeps \(X\), and \(s = 1\) regenerates.</p>
+    <div class="eq">\[ Y = (1-s)\,X + s\,\varepsilon, \qquad X' = \Phi^{c'}_{1-s\to 1}(Y) \]</div>
+    <div class="mcards">
+      <a class="mcard img" href="#images">
+        <span class="mhead"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="8.5" cy="9.5" r="1.7"/><path d="M4 17.5l5-5 4 4 3-3 4 4"/></svg><b>Images</b><small>FLUX.1-dev</small></span>
+        <span class="mpair"><img src="static/img/cat2tiger/s0.webp" alt="House cat in a garden" width="512" height="512"><svg class="to" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M14 6.5l5.5 5.5-5.5 5.5"/></svg><img src="static/img/cat2tiger/s0.85.webp" alt="Tiger in the same garden" width="512" height="512"></span>
+        <span class="mfoot">cat → tiger at \(s = 0.85\)</span>
+      </a>
+      <a class="mcard vid" href="#video">
+        <span class="mhead"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="13" height="13" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg><b>Video</b><small>LTX-Video</small></span>
+        <span class="mpair"><img src="static/img/cards/video_c.webp" alt="Golden retriever on a beach" width="768" height="512"><svg class="to" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M14 6.5l5.5 5.5-5.5 5.5"/></svg><img src="static/img/cards/video_c2.webp" alt="Robotic dog on the same beach" width="768" height="512"></span>
+        <span class="mfoot">dog → robot dog at \(s = 0.975\)</span>
+      </a>
+      <a class="mcard lang" href="#language">
+        <span class="mhead"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9.5L4 20z"/><path d="M8 9h8M8 12.5h5"/></svg><b>Language</b><small>LLaDA-8B</small></span>
+        <span class="mpair text"><span class="q"><span>This place really never disappoints!</span></span><svg class="to" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M14 6.5l5.5 5.5-5.5 5.5"/></svg><span class="q"><span>This place really needs some work.</span></span></span>
+        <span class="mfoot">positive → negative at \(s = 0.6\)</span>
+      </a>
+      <a class="mcard rob" href="#robotics">
+        <span class="mhead"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="8" width="14" height="11" rx="2.5"/><path d="M12 8V5.2"/><circle cx="12" cy="4.2" r="1"/><circle cx="9.5" cy="13.2" r="1.2"/><circle cx="14.5" cy="13.2" r="1.2"/><path d="M3 12v3.5M21 12v3.5"/></svg><b>Robotics</b><small>Diffusion Policy</small></span>
+        <span class="mpair"><img src="static/img/cards/robot_c.png" alt="The cube has moved away from the gripper" width="256" height="256"><svg class="to" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M14 6.5l5.5 5.5-5.5 5.5"/></svg><img src="static/img/cards/robot_c2.png" alt="The gripper holds the cube" width="256" height="256"></span>
+        <span class="mfoot">cube moved → lifted at \(s = 0.2\)</span>
+      </a>
+    </div>
   </div>
 </section>
 
-<section class="section" id="images" data-nav="images">
+<section class="section band img" id="images" data-nav="images">
   <div class="container content">
-    <h3 class="title">Image Editing</h3>
-    <p class="justified">On FLUX.1-dev, edits switch on at high noise. Over 39 edits at \(s = 0.94\), CLIP similarity to \(c'\) is 0.260 against 0.279 for regeneration, while LPIPS to the source is 0.45 against 0.66.</p>
+    <p class="eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="8.5" cy="9.5" r="1.7"/><path d="M4 17.5l5-5 4 4 3-3 4 4"/></svg>Images<span>FLUX.1-dev</span></p>
+    <h3 class="title">Edits switch on at high noise</h3>
+    <div class="stats">
+      <div class="stat"><b>10% → 95%</b><span>edits applied, \(s = 0.8 \to 0.98\)</span></div>
+      <div class="stat"><b>0.260</b><span>CLIP to \(c'\) at \(s = 0.94\)</span><small>regeneration 0.279</small></div>
+      <div class="stat"><b>0.45</b><span>LPIPS to source at \(s = 0.94\)</span><small>regeneration 0.66</small></div>
+    </div>
+    <p class="note">39 edits, 3 seeds. An edit counts as applied when CLIP prefers \(c'\) over \(c\).</p>
     <figure>
       <div class="viewer" id="imgViewer"></div>
       <figcaption>Drag \(s\) or press play.</figcaption>
@@ -78,27 +95,41 @@
   </div>
 </section>
 
-<section class="section" id="video" data-nav="video">
+<section class="section band vid" id="video" data-nav="video">
   <div class="container content">
-    <h3 class="title">Video Editing</h3>
-    <p class="justified">On LTX-Video, renoise-denoise matches the swap's CLIP-T (0.247 against 0.242 at \(s = 0.909\)) while staying closer to the source (LPIPS 0.318 against 0.545).</p>
+    <p class="eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="13" height="13" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg>Video<span>LTX-Video</span></p>
+    <h3 class="title">As accurate as a swap, closer to the source</h3>
+    <div class="stats">
+      <div class="stat"><b>0.247</b><span>CLIP-T to \(c'\)</span><small>swap 0.242</small></div>
+      <div class="stat"><b>0.318</b><span>LPIPS to source</span><small>swap 0.545</small></div>
+      <div class="stat"><b>5</b><span>NFEs</span><small>swap 10</small></div>
+    </div>
+    <p class="note">\(s = 0.909\), 15 edits, 3 seeds.</p>
     <figure>
       <div class="viewer" id="vidViewer"></div>
       <figcaption>The swap denoises under \(c\) to the same noise level, then switches to \(c'\).</figcaption>
     </figure>
-    <h4 class="subtitle">Sequential Updates</h4>
-    <p class="justified">Each update renoises the previous clip to \(s = 0.975\). LPIPS to the previous clip is 0.50 to 0.52, against 0.58 to 0.68 when every clip is regenerated.</p>
+    <h4 class="subtitle">Sequential updates stay close to the previous clip</h4>
+    <div class="stats two">
+      <div class="stat"><b>0.50–0.52</b><span>LPIPS to the previous clip</span><small>regeneration 0.58–0.68</small></div>
+      <div class="stat"><b>6</b><span>NFEs per update</span><small>regeneration 10</small></div>
+    </div>
     <figure>
       <div class="viewer" id="streamViewer"></div>
-      <figcaption>Each column adds one instruction.</figcaption>
+      <figcaption>Each column adds one instruction and renoises the previous clip to \(s = 0.975\).</figcaption>
     </figure>
   </div>
 </section>
 
-<section class="section" id="language" data-nav="language">
+<section class="section band lang" id="language" data-nav="language">
   <div class="container content">
-    <h3 class="title">Language Editing</h3>
-    <p class="justified">LLaDA-8B masks each token with probability \(s\) and fills the masks under the new instruction. From \(s = 0.1\) to \(0.9\), token F1 to the source falls from 0.96 to 0.30 and the target sentiment probability rises from 0.10 to 0.62.</p>
+    <p class="eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9.5L4 20z"/><path d="M8 9h8M8 12.5h5"/></svg>Language<span>LLaDA-8B</span></p>
+    <h3 class="title">Masking tokens is renoising</h3>
+    <div class="stats two">
+      <div class="stat"><b>0.96 → 0.30</b><span>token F1 to source, \(s = 0.1 \to 0.9\)</span></div>
+      <div class="stat"><b>0.10 → 0.62</b><span>target sentiment probability</span><small>sentiment edits</small></div>
+    </div>
+    <p class="note">Each token is masked with probability \(s\). 669 edits.</p>
     <figure>
       <div class="viewer" id="langViewer"></div>
       <figcaption>Words not in the source are in red.</figcaption>
@@ -106,10 +137,16 @@
   </div>
 </section>
 
-<section class="section" id="robotics" data-nav="robotics">
+<section class="section band rob" id="robotics" data-nav="robotics">
   <div class="container content">
-    <h3 class="title">Policy Steering</h3>
-    <p class="justified">The cube moves while a Diffusion Policy runs a long open-loop plan on Lift. Keeping the old plan succeeds in 37 of 50 episodes, and renoise-denoise at \(s = 0.2\) succeeds in 42 with 21 denoising steps, as many as a 100-step replan. On PushT all arms tie.</p>
+    <p class="eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="8" width="14" height="11" rx="2.5"/><path d="M12 8V5.2"/><circle cx="12" cy="4.2" r="1"/><circle cx="9.5" cy="13.2" r="1.2"/><circle cx="14.5" cy="13.2" r="1.2"/><path d="M3 12v3.5M21 12v3.5"/></svg>Robotics<span>Diffusion Policy</span></p>
+    <h3 class="title">A 21-step update matches a 100-step replan</h3>
+    <div class="stats">
+      <div class="stat"><b>37/50</b><span>keep old plan</span><small>0 NFEs</small></div>
+      <div class="stat"><b>42/50</b><span>renoise-denoise, \(s = 0.2\)</span><small>21 NFEs</small></div>
+      <div class="stat"><b>42/50</b><span>replan</span><small>100 NFEs</small></div>
+    </div>
+    <p class="note">Lift, cube moved during a long open-loop plan, 50 episodes. On PushT all arms tie.</p>
     <figure>
       <div class="viewer robot" id="robotViewer"></div>
       <figcaption>The cube moves at step 21 and the plans update at step 23.</figcaption>
@@ -157,7 +194,7 @@
   // content rises into view as it is reached
   (function () {
     if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    var items = document.querySelectorAll('.section h2, .section h3, .section h4, .section p, .section figure, .section .eq, .section .bib, .section .map');
+    var items = document.querySelectorAll('.section h2, .section h3, .section h4, .section p, .section figure, .section .eq, .section .bib, .section .stats, .section .mcards');
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
     }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });

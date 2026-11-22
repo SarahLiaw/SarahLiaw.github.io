@@ -235,7 +235,8 @@
   /* ---------------- video: LTX-Video, renoise-denoise against the swap ---------------- */
   function videoViewer(root, D) {
     var NFE_RD = { '0.9094': 5, '0.975': 6, '0.9937': 9 }, NFE_SWAP = 10;   // paper video swap table: 2+3, 3+3, 6+3 and 7+3
-    var cur = 0, sg = 1, visible = false, want = !REDUCE;
+    var cur = Math.max(0, D.edits.findIndex(function (e) { return e.pair === 'v_t2_robotdog'; }));   // the overview card's edit
+    var sg = 1, visible = false, want = !REDUCE;
     var vids = [0, 1, 2].map(function () { return h('video', { class: 'wide', preload: 'auto', muted: '', playsinline: '' }); });
     var rdTag = h('small'), swTag = h('small');
     function panel(v, title, small) {
@@ -380,7 +381,6 @@
 
   /* ---------------- robotics: Diffusion Policy on Lift ---------------- */
   function robotViewer(root, D) {
-    var SUCC = { keep: '37/50', replan: '42/50', 0.2: '42/50', 0.4: '42/50', 0.6: '42/50', 0.8: '43/50' };  // paper, long-chunk table
     var arms = {};
     D.arms.forEach(function (a) { arms[a.arm] = a; });
     var rdList = D.arms.filter(function (a) { return a.kind === 'rd'; });
@@ -392,7 +392,6 @@
     var panels = h('div', { class: 'panels' }, [0, 1, 2].map(function (i) {
       return h('div', { class: 'panel' }, [h('div', { class: 'media' }, [vids[i], badges[i]]), h('div', { class: 'tag' }, [titles[i], tags[i]])]);
     }));
-    var stats = h('div', { class: 'stat' });
     var time = h('span'), sub = h('small');
     var range = scrubber(function (f) { want = false; btn.show(false); c.pause(); c.seek(f * (vids[0].duration || 0)); });
     var marks = h('div', { class: 'marks' });
@@ -417,7 +416,6 @@
     var sPills = pills(rdList.map(function (a) { return 's = ' + a.s; }), cur, function (i) { cur = i; load(); }, 'Renoising strength');
     root.appendChild(h('div', { class: 'bar' }, [sPills]));
     root.appendChild(panels);
-    root.appendChild(stats);
     root.appendChild(h('div', { class: 'ctrl' }, [btn, h('div', { class: 'track' }, [range, marks]), h('div', { class: 'readout' }, [time, sub])]));
     function load() {
       var rdArm = rdList[cur];
@@ -426,13 +424,9 @@
         var src = 'static/video/robot/lift_' + a.arm + '.mp4';
         if (vids[i].getAttribute('src') !== src) { vids[i].src = src; vids[i].load(); }
       });
-      tags[0].textContent = 's = 0, 0 NFEs';
-      tags[1].textContent = 's = ' + rdArm.s + ', ' + rdArm.react_nfe + ' NFEs';
-      tags[2].textContent = 's = 1, ' + arms.replan.react_nfe + ' NFEs';
-      stats.innerHTML = '';
-      [['keep', shown[0]], [rdArm.s, rdArm], ['replan', shown[2]]].forEach(function (p) {
-        stats.appendChild(h('div', {}, [h('b', { text: SUCC[p[0]] }), 'succeed']));
-      });
+      tags[0].textContent = 's = 0 \u00b7 0 NFEs';
+      tags[1].textContent = 's = ' + rdArm.s + ' \u00b7 ' + rdArm.react_nfe + ' NFEs';
+      tags[2].textContent = 's = 1 \u00b7 ' + arms.replan.react_nfe + ' NFEs';
       sync();
     }
     function sync() { btn.show(want); if (want && visible) c.play(); else c.pause(); }
