@@ -87,7 +87,6 @@
       <div class="stat"><b>0.260</b><span>CLIP to \(c'\) at \(s = 0.94\)</span><small>regeneration 0.279</small></div>
       <div class="stat"><b>0.45</b><span>LPIPS to source at \(s = 0.94\)</span><small>regeneration 0.66</small></div>
     </div>
-    <p class="note">39 edits, 3 seeds. An edit counts as applied when CLIP prefers \(c'\) over \(c\).</p>
     <figure>
       <div class="viewer" id="imgViewer"></div>
       <figcaption>Drag \(s\) or press play.</figcaption>
@@ -100,11 +99,10 @@
     <p class="eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="13" height="13" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg>Video<span>LTX-Video</span></p>
     <h3 class="title">As accurate as a swap, closer to the source</h3>
     <div class="stats">
-      <div class="stat"><b>0.247</b><span>CLIP-T to \(c'\)</span><small>swap 0.242</small></div>
+      <div class="stat"><b>0.247</b><span>CLIP-T to \(c'\) at \(s = 0.909\)</span><small>swap 0.242</small></div>
       <div class="stat"><b>0.318</b><span>LPIPS to source</span><small>swap 0.545</small></div>
       <div class="stat"><b>5</b><span>NFEs</span><small>swap 10</small></div>
     </div>
-    <p class="note">\(s = 0.909\), 15 edits, 3 seeds.</p>
     <figure>
       <div class="viewer" id="vidViewer"></div>
       <figcaption>The swap denoises under \(c\) to the same noise level, then switches to \(c'\).</figcaption>
@@ -129,7 +127,6 @@
       <div class="stat"><b>0.96 → 0.30</b><span>token F1 to source, \(s = 0.1 \to 0.9\)</span></div>
       <div class="stat"><b>0.10 → 0.62</b><span>target sentiment probability</span><small>sentiment edits</small></div>
     </div>
-    <p class="note">Each token is masked with probability \(s\). 669 edits.</p>
     <figure>
       <div class="viewer" id="langViewer"></div>
       <figcaption>Words not in the source are in red.</figcaption>
@@ -146,7 +143,6 @@
       <div class="stat"><b>42/50</b><span>renoise-denoise, \(s = 0.2\)</span><small>21 NFEs</small></div>
       <div class="stat"><b>42/50</b><span>replan</span><small>100 NFEs</small></div>
     </div>
-    <p class="note">Lift, cube moved during a long open-loop plan, 50 episodes. On PushT all arms tie.</p>
     <figure>
       <div class="viewer robot" id="robotViewer"></div>
       <figcaption>The cube moves at step 21 and the plans update at step 23.</figcaption>
