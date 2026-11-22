@@ -232,7 +232,6 @@
 
   /* ---------------- video: LTX-Video, renoise-denoise against the swap ---------------- */
   function videoViewer(root, D) {
-    var NFE_RD = { '0.9094': 5, '0.975': 6, '0.9937': 9 }, NFE_SWAP = 10;   // paper video swap table: 2+3, 3+3, 6+3 and 7+3
     var cur = Math.max(0, D.edits.findIndex(function (e) { return e.pair === 'v_t2_robotdog'; }));   // the overview card's edit
     var sg = 1, visible = false, want = !REDUCE;
     var vids = [0, 1, 2].map(function () { return h('video', { class: 'wide', preload: 'auto', muted: '', playsinline: '' }); });
@@ -257,8 +256,8 @@
       vids[0].poster = base + e.src + '.jpg';
       vids.forEach(function (v, i) { if (v.getAttribute('src') !== srcs[i]) { v.src = srcs[i]; v.load(); } });
       var band = e.bands[key] || [false, false];          // black edge bands measured in the clip files
-      rdTag.textContent = NFE_RD[key] + ' NFEs' + (band[0] ? ', black band is in the output' : '');
-      swTag.textContent = NFE_SWAP + ' NFEs' + (band[1] ? ', black band is in the output' : '');
+      rdTag.textContent = band[0] ? 'black band is in the output' : '';
+      swTag.textContent = band[1] ? 'black band is in the output' : '';
       promptBox.innerHTML = '';
       promptBox.appendChild(promptPair(e.c, e.c_new));
       sync();

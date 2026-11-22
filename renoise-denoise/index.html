@@ -82,9 +82,6 @@
   <div class="container content">
     <p class="eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="8.5" cy="9.5" r="1.7"/><path d="M4 17.5l5-5 4 4 3-3 4 4"/></svg>Images<span>FLUX.1-dev</span></p>
     <h3 class="title">Edits switch on at high noise</h3>
-    <div class="stats one">
-      <div class="stat"><b>10% → 95%</b><span>edits where CLIP prefers \(c'\)</span><small>\(s = 0.8 \to 0.98\)</small></div>
-    </div>
     <figure>
       <div class="viewer" id="imgViewer"></div>
     </figure>
@@ -95,20 +92,11 @@
   <div class="container content">
     <p class="eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="13" height="13" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg>Video<span>LTX-Video</span></p>
     <h3 class="title">As accurate as a swap, closer to the source</h3>
-    <div class="stats">
-      <div class="stat"><b>0.247</b><span>CLIP-T to \(c'\) at \(s = 0.909\)</span><small>swap 0.242</small></div>
-      <div class="stat"><b>0.318</b><span>LPIPS to source</span><small>swap 0.545</small></div>
-      <div class="stat"><b>5</b><span>NFEs</span><small>swap 10</small></div>
-    </div>
     <figure>
       <div class="viewer" id="vidViewer"></div>
       <figcaption>The swap denoises under \(c\) to the same noise level, then switches to \(c'\).</figcaption>
     </figure>
     <h4 class="subtitle">Sequential updates stay close to the previous clip</h4>
-    <div class="stats two">
-      <div class="stat"><b>0.50–0.52</b><span>LPIPS to the previous clip</span><small>regeneration 0.58–0.68</small></div>
-      <div class="stat"><b>6</b><span>NFEs per update</span><small>regeneration 10</small></div>
-    </div>
     <figure>
       <div class="viewer" id="streamViewer"></div>
       <figcaption>Each column adds one instruction and renoises the previous clip to \(s = 0.975\).</figcaption>
@@ -131,11 +119,6 @@
   <div class="container content">
     <p class="eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="8" width="14" height="11" rx="2.5"/><path d="M12 8V5.2"/><circle cx="12" cy="4.2" r="1"/><circle cx="9.5" cy="13.2" r="1.2"/><circle cx="14.5" cy="13.2" r="1.2"/><path d="M3 12v3.5M21 12v3.5"/></svg>Robotics<span>Diffusion Policy</span></p>
     <h3 class="title">A 21-step update matches a 100-step replan</h3>
-    <div class="stats">
-      <div class="stat"><b>37/50</b><span>keep old plan</span><small>0 NFEs</small></div>
-      <div class="stat"><b>42/50</b><span>renoise-denoise, \(s = 0.2\)</span><small>21 NFEs</small></div>
-      <div class="stat"><b>42/50</b><span>replan</span><small>100 NFEs</small></div>
-    </div>
     <figure>
       <div class="viewer robot" id="robotViewer"></div>
       <figcaption>The cube moves at step 21.</figcaption>
